@@ -34,6 +34,8 @@ import kotlinx.serialization.Serializable
 import pt.tiago.cinzeiro.di.AppContainer
 import pt.tiago.cinzeiro.ui.components.DesignShowcase
 import pt.tiago.cinzeiro.ui.components.EmptyState
+import pt.tiago.cinzeiro.ui.stats.StatsRoute
+import pt.tiago.cinzeiro.ui.stats.StatsViewModel
 import pt.tiago.cinzeiro.ui.theme.SnackbarAction
 import pt.tiago.cinzeiro.ui.today.TodayRoute
 import pt.tiago.cinzeiro.ui.today.TodayViewModel
@@ -107,7 +109,12 @@ fun AppNav(container: AppContainer) {
                 )
                 TodayRoute(vm, snackbarHostState, onOpenDesignShowcase = { nav.navigate(DesignDest) })
             }
-            composable<StatsDest> { EmptyState("Em breve: estatísticas por período.", icon = Icons.Rounded.BarChart) }
+            composable<StatsDest> {
+                val vm: StatsViewModel = viewModel(
+                    factory = viewModelFactory { initializer { StatsViewModel(container.repository) } },
+                )
+                StatsRoute(vm)
+            }
             composable<HistoryDest> { EmptyState("Em breve: histórico, apagar e acrescentar.", icon = Icons.Rounded.History) }
             composable<DesignDest> { DesignShowcase() }
         }
