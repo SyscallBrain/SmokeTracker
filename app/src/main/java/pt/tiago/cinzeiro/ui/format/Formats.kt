@@ -23,6 +23,15 @@ object Formats {
     fun dayHeader(d: LocalDate): String =
         "${weekdays[d.dayOfWeek.value - 1]}, ${d.dayOfMonth} ${months[d.monthValue - 1]}"
 
+    /** «qua» — abreviatura fixa do dia da semana. */
+    fun weekdayShort(d: LocalDate): String = weekdays[d.dayOfWeek.value - 1]
+
+    /** «29 set». */
+    fun dayMonth(d: LocalDate): String = "${d.dayOfMonth} ${months[d.monthValue - 1]}"
+
+    /** Inicial do dia da semana, segunda = 0: S T Q Q S S D (heatmap). */
+    val weekdayInitials: List<String> = listOf("S", "T", "Q", "Q", "S", "S", "D")
+
     /** Uma casa decimal com vírgula: 2,4. */
     fun decimal1(x: Double): String = String.format(PT, "%.1f", x)
 

@@ -36,4 +36,11 @@ class FormatsTest {
         assertEquals("↑ 15 % vs anterior", deltaLabel(14.6))
         assertEquals("= 0 % vs anterior", deltaLabel(0.2))
     }
+
+    @Test
+    fun `dia da semana curto, dia e mes, iniciais do heatmap`() {
+        assertEquals("ter", Formats.weekdayShort(LocalDate.of(2026, 9, 29)))
+        assertEquals("29 set", Formats.dayMonth(LocalDate.of(2026, 9, 29)))
+        assertEquals(listOf("S", "T", "Q", "Q", "S", "S", "D"), Formats.weekdayInitials)
+    }
 }
