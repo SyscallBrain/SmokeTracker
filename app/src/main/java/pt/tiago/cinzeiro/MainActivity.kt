@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import pt.tiago.cinzeiro.ui.components.DesignShowcase
+import pt.tiago.cinzeiro.ui.nav.AppNav
 import pt.tiago.cinzeiro.ui.theme.CinzeiroTheme
 
 class MainActivity : ComponentActivity() {
@@ -16,9 +16,9 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        val container = (application as App).container
         setContent {
-            // T1: ecrã temporário com o catálogo de design; o T4 substitui pela navegação.
-            CinzeiroTheme { DesignShowcase() }
+            CinzeiroTheme { AppNav(container) }
         }
     }
 }

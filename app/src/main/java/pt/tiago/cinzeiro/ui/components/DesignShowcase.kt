@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -43,7 +42,6 @@ fun DesignShowcase(modifier: Modifier = Modifier) {
         modifier
             .fillMaxSize()
             .background(cs.background)
-            .systemBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(Dimens.screenPadding),
         verticalArrangement = Arrangement.spacedBy(Dimens.l),
