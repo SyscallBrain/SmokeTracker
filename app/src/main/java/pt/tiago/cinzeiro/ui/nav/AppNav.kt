@@ -33,6 +33,7 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
 import pt.tiago.cinzeiro.di.AppContainer
 import pt.tiago.cinzeiro.ui.components.DesignShowcase
+import pt.tiago.cinzeiro.BuildConfig
 import pt.tiago.cinzeiro.ui.history.HistoryRoute
 import pt.tiago.cinzeiro.ui.history.HistoryViewModel
 import pt.tiago.cinzeiro.ui.stats.StatsRoute
@@ -118,7 +119,7 @@ fun AppNav(container: AppContainer) {
             }
             composable<HistoryDest> {
                 val vm: HistoryViewModel = viewModel(
-                    factory = viewModelFactory { initializer { HistoryViewModel(container.repository) } },
+                    factory = viewModelFactory { initializer { HistoryViewModel(container.repository, BuildConfig.VERSION_NAME) } },
                 )
                 HistoryRoute(vm, snackbarHostState)
             }

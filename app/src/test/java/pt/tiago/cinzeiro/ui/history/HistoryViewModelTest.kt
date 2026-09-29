@@ -134,4 +134,40 @@ class HistoryViewModelTest {
         assertFalse(s.canLoadMore)
         assertTrue(s.days.isEmpty())
     }
+
+    @Test
+    fun `exportar CSV escreve todos os registos e avisa com a contagem`() = runTest(dispatcher) {
+        repo.replaceAll(listOf(at(0, 9, 40), at(100, 8, 0)))
+        val vm = HistoryViewModel(repo, appVersion = "0.3.0", io = dispatcher)
+        val events = mutableListOf<HistoryEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.events.collect { events += it } }
+        val out = java.io.ByteArrayOutputStream()
+        vm.export(ExportFormat.CSV) { out }
+        runCurrent()
+        val lines = out.toString(Charsets.UTF_8).trimEnd().lines()
+        assertEquals("id,instant_utc,zone_id,local_datetime", lines[0])
+        assertEquals(3, lines.size)
+        assertTrue(lines[1].endsWith("Europe/Lisbon,2026-06-21T08:00:00"))
+        assertEquals(HistoryEvent.Message("Exportados 2 registos"), events.last())
+        assertEquals("cinzeiro-2026-09-29.json", vm.suggestedFileName(ExportFormat.JSON))
+    }
+
+    @Test
+    fun `exportar JSON leva app_version e falha com mensagem se o destino nao abrir`() = runTest(dispatcher) {
+        repo.replaceAll(listOf(at(0, 9, 40)))
+        val vm = HistoryViewModel(repo, appVersion = "0.3.0", io = dispatcher)
+        val events = mutableListOf<HistoryEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.events.collect { events += it } }
+        val out = java.io.ByteArrayOutputStream()
+        vm.export(ExportFormat.JSON) { out }
+        runCurrent()
+        val doc = pt.tiago.cinzeiro.domain.export.JsonExporter.read(out.toString(Charsets.UTF_8))
+        assertEquals("0.3.0", doc.appVersion)
+        assertEquals(1, doc.count)
+        assertEquals("2026-09-29T12:32:05Z", doc.exportedAt)
+
+        vm.export(ExportFormat.CSV) { null }
+        runCurrent()
+        assertEquals(HistoryEvent.Message("Falhou a exportação: destino indisponível"), events.last())
+    }
 }

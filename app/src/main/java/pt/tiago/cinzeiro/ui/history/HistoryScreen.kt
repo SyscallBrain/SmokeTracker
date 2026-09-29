@@ -1,6 +1,9 @@
 package pt.tiago.cinzeiro.ui.history
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,6 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -24,6 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SnackbarDuration
@@ -49,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -97,8 +103,23 @@ fun HistoryRoute(viewModel: HistoryViewModel, snackbarHostState: SnackbarHostSta
             }
         }
     }
+    val context = LocalContext.current
+    // Um launcher por tipo MIME (o contrato CreateDocument fixa o MIME na criação).
+    val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(ExportFormat.CSV.mime)) { uri ->
+        if (uri != null) viewModel.export(ExportFormat.CSV) { context.contentResolver.openOutputStream(uri, "wt") }
+    }
+    val jsonLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(ExportFormat.JSON.mime)) { uri ->
+        if (uri != null) viewModel.export(ExportFormat.JSON) { context.contentResolver.openOutputStream(uri, "wt") }
+    }
     HistoryScreen(
         state = state,
+        onExport = { format ->
+            val name = viewModel.suggestedFileName(format)
+            when (format) {
+                ExportFormat.CSV -> csvLauncher.launch(name)
+                ExportFormat.JSON -> jsonLauncher.launch(name)
+            }
+        },
         onDelete = viewModel::delete,
         onLoadMore = viewModel::loadMore,
         onAdd = viewModel::addPast,
@@ -112,6 +133,7 @@ private fun LoggedEvent.localTime(): LocalTime = instant.atZone(zone).toLocalTim
 @Composable
 fun HistoryScreen(
     state: HistoryUiState,
+    onExport: (ExportFormat) -> Unit,
     onDelete: (LoggedEvent) -> Unit,
     onLoadMore: () -> Unit,
     onAdd: (LocalDate, LocalTime) -> Unit,
@@ -119,6 +141,7 @@ fun HistoryScreen(
     zoneNow: () -> java.time.ZoneId,
 ) {
     var adding by rememberSaveable { mutableStateOf(false) }
+    var exporting by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     // Paginação: ao chegar a 5 itens do fim, pede mais 30 dias.
@@ -133,6 +156,19 @@ fun HistoryScreen(
         snapshotFlow { nearEnd }.collect { if (it && state.canLoadMore) onLoadMore() }
     }
 
+    Column(Modifier.fillMaxSize()) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = Dimens.screenPadding, end = Dimens.xs, top = Dimens.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Histórico", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+        Spacer(Modifier.weight(1f))
+        IconButton(onClick = { exporting = true }) {
+            Icon(Icons.Rounded.FileDownload, contentDescription = "Exportar")
+        }
+    }
     Box(Modifier.fillMaxSize()) {
         when {
             state.loading -> Unit
@@ -167,6 +203,18 @@ fun HistoryScreen(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(Dimens.l),
+        )
+    }
+    }
+
+    if (exporting) {
+        ExportSheet(
+            enabled = !state.isEmpty,
+            onDismiss = { exporting = false },
+            onPick = { format ->
+                exporting = false
+                onExport(format)
+            },
         )
     }
 
@@ -302,7 +350,7 @@ fun AddPastEventDialog(
             onDismissRequest = onDismiss,
             title = { Text("Hora · ${Formats.dayHeader(date)}") },
             text = {
-                androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     TimePicker(state = timeState)
                     if (!valid) {
                         Text(

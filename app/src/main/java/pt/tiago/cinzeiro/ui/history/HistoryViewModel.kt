@@ -2,7 +2,10 @@ package pt.tiago.cinzeiro.ui.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -18,11 +21,21 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import pt.tiago.cinzeiro.data.LoggedEvent
 import pt.tiago.cinzeiro.data.SmokeRepository
+import pt.tiago.cinzeiro.domain.export.CsvExporter
+import pt.tiago.cinzeiro.domain.export.ExportEvent
+import pt.tiago.cinzeiro.domain.export.JsonExporter
+import pt.tiago.cinzeiro.domain.export.exportFileName
 import pt.tiago.cinzeiro.domain.localDate
+import java.io.OutputStream
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+
+enum class ExportFormat(val mime: String, val extension: String) {
+    CSV("text/csv", "csv"),
+    JSON("application/json", "json"),
+}
 
 /** Tamanho de cada página do histórico, em dias (não se carregam anos de uma vez). */
 const val HISTORY_PAGE_DAYS = 30
@@ -62,7 +75,11 @@ fun pastInstantOrNull(date: LocalDate, time: LocalTime, zone: ZoneId, now: Insta
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class HistoryViewModel(private val repo: SmokeRepository) : ViewModel() {
+class HistoryViewModel(
+    private val repo: SmokeRepository,
+    private val appVersion: String = "",
+    private val io: CoroutineDispatcher = Dispatchers.IO,
+) : ViewModel() {
 
     private val loadedDays = MutableStateFlow(HISTORY_PAGE_DAYS)
     private val resumeSignal = MutableStateFlow(0)
@@ -120,6 +137,36 @@ class HistoryViewModel(private val repo: SmokeRepository) : ViewModel() {
     fun undoDelete(event: LoggedEvent) {
         viewModelScope.launch { repo.logAt(event.instant, event.zone) }
     }
+
+    /**
+     * Exporta **todos** os registos para o destino escolhido no SAF. [open] abre o `OutputStream`
+     * (a UI usa `contentResolver.openOutputStream(uri, "wt")`); a formatação está em `domain/export`.
+     */
+    fun export(format: ExportFormat, open: () -> OutputStream?) {
+        viewModelScope.launch {
+            val result = runCatching {
+                withContext(io) {
+                    val events = repo.allEvents().map { ExportEvent(it.id, it.instant, it.zone) }
+                    val stream = open() ?: error("destino indisponível")
+                    stream.bufferedWriter(Charsets.UTF_8).use { w ->
+                        when (format) {
+                            ExportFormat.CSV -> CsvExporter.write(events, w)
+                            ExportFormat.JSON -> JsonExporter.write(events, repo.now(), appVersion, w)
+                        }
+                    }
+                }
+            }
+            val text = result.fold(
+                onSuccess = { n -> "Exportados $n registos" },
+                onFailure = { e -> "Falhou a exportação: ${e.message ?: e.javaClass.simpleName}" },
+            )
+            _events.send(HistoryEvent.Message(text))
+        }
+    }
+
+    /** Nome sugerido no seletor do SAF: `cinzeiro-AAAA-MM-DD.<ext>`. */
+    fun suggestedFileName(format: ExportFormat): String =
+        exportFileName(repo.now().atZone(repo.zone()).toLocalDate(), format.extension)
 
     fun addPast(date: LocalDate, time: LocalTime) {
         viewModelScope.launch {
