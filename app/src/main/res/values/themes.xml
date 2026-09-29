@@ -1,0 +1,7 @@
+<resources>
+    <!-- Tema da janela antes do Compose desenhar: sempre escuro, fundo #1a1b26. -->
+    <style name="Theme.Cinzeiro" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/background</item>
+    </style>
+    <color name="background">#FF1A1B26</color>
+</resources>
