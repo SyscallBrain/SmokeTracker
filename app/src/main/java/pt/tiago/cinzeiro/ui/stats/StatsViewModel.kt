@@ -22,9 +22,11 @@ import pt.tiago.cinzeiro.domain.Period
 import pt.tiago.cinzeiro.domain.SmokeEvent
 import pt.tiago.cinzeiro.domain.Summary
 import pt.tiago.cinzeiro.domain.dailyCounts
+import pt.tiago.cinzeiro.domain.hourlyDistribution
 import pt.tiago.cinzeiro.domain.localDate
 import pt.tiago.cinzeiro.domain.movingAverage
 import pt.tiago.cinzeiro.domain.summary
+import pt.tiago.cinzeiro.domain.weekdayHourHeatmap
 import pt.tiago.cinzeiro.domain.weeklyCounts
 import java.time.LocalDate
 import java.time.ZoneId
@@ -50,6 +52,11 @@ data class StatsUiState(
     val today: LocalDate? = null,
     val summary: Summary? = null,
     val bars: BarsData? = null,
+    /** Soma por hora local (0..23) dos eventos do período. */
+    val hourly: List<Int> = List(24) { 0 },
+    /** Dia da semana (0 = segunda) × hora, eventos do período. */
+    val heatmap: List<List<Int>> = List(7) { List(24) { 0 } },
+    val currentHour: Int = 0,
 )
 
 /**
@@ -61,8 +68,10 @@ fun buildStats(
     firstEventDate: LocalDate?,
     period: Period,
     today: LocalDate,
+    currentHour: Int = 0,
 ): StatsUiState {
     val start = today.minusDays(period.days - 1L)
+    val inPeriod = events.filter { val d = it.localDate(); d >= start && d <= today }
     val s = summary(events, period, today, firstEventDate)
     val bars = when (period) {
         Period.D7, Period.D30 -> {
@@ -87,7 +96,16 @@ fun buildStats(
             )
         }
     }
-    return StatsUiState(loading = false, period = period, today = today, summary = s, bars = bars)
+    return StatsUiState(
+        loading = false,
+        period = period,
+        today = today,
+        summary = s,
+        bars = bars,
+        hourly = hourlyDistribution(inPeriod).toList(),
+        heatmap = weekdayHourHeatmap(inPeriod).map { it.toList() },
+        currentHour = currentHour,
+    )
 }
 
 /**
@@ -128,19 +146,23 @@ class StatsViewModel(
         }
     }
 
-    /** Dia actual; muda à meia-noite (ou ao voltar à app). */
-    private val today: Flow<LocalDate> = combine(resumeSignal, minuteTicker) { _, _ ->
-        repo.now().atZone(repo.zone()).toLocalDate()
+    private data class Tick(val date: LocalDate, val hour: Int)
+
+    /** Dia e hora actuais; mudam à meia-noite / a cada hora (ou ao voltar à app). */
+    private val tick: Flow<Tick> = combine(resumeSignal, minuteTicker) { _, _ ->
+        val local = repo.now().atZone(repo.zone())
+        Tick(local.toLocalDate(), local.hour)
     }.distinctUntilChanged()
 
-    val state: StateFlow<StatsUiState> = combine(today, period) { d, p -> d to p }
-        .flatMapLatest { (d, p) ->
+    val state: StateFlow<StatsUiState> = combine(tick, period) { t, p -> t to p }
+        .flatMapLatest { (t, p) ->
+            val d = t.date
             val zone: ZoneId = repo.zone()
             // Período anterior (delta) + 6 dias antes (média móvel) + período actual.
             val from = d.minusDays(2L * p.days + 6).atStartOfDay(zone).toInstant()
             val to = d.plusDays(1).atStartOfDay(zone).toInstant()
             combine(repo.observeBetween(from, to), repo.observeFirstEventInstant()) { logged, first ->
-                buildStats(logged.map { it.event }, first?.atZone(zone)?.toLocalDate(), p, d)
+                buildStats(logged.map { it.event }, first?.atZone(zone)?.toLocalDate(), p, d, t.hour)
             }.flowOn(compute)
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StatsUiState())

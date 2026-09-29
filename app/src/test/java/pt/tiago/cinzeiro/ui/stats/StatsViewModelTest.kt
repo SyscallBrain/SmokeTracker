@@ -76,7 +76,7 @@ class StatsViewModelTest {
     fun `BD vazia da resumo a zero e barras a zero`() = runTest(dispatcher) {
         val s = newVm().state.value
         assertEquals(false, s.loading)
-        assertEquals(0, s.summary!!.total)
+        assertEquals(0, s.summary?.total)
         assertNull(s.summary!!.avgInterval)
         assertEquals(7, s.bars!!.values.size)
         assertTrue(s.bars!!.values.all { it == 0 })
@@ -156,5 +156,38 @@ class StatsViewModelTest {
         assertEquals(1, s.summary!!.total)
         assertNotNull(s.summary!!.maxDay)
         assertEquals(today, s.summary!!.maxDay!!.date)
+    }
+
+    @Test
+    fun `padroes respeitam o periodo e o pico do heatmap e a hora mais frequente`() = runTest(dispatcher) {
+        // Hoje (terça) 3 às 9 h; há 10 dias (sábado, fora de 7 d) 5 às 22 h.
+        val raw = buildList {
+            repeat(3) { add(today.atTime(9, it).atZone(zone).toInstant() to zone) }
+            repeat(5) { add(today.minusDays(10).atTime(22, it).atZone(zone).toInstant() to zone) }
+        }
+        repo.replaceAll(raw)
+        val vm = newVm()
+
+        var s = vm.state.value
+        assertEquals(3, s.hourly.sum())
+        assertEquals(3, s.hourly[9])
+        assertEquals(3, s.heatmap[1][9]) // terça = índice 1
+        assertEquals(3, s.heatmap.sumOf { it.sum() })
+        assertEquals(13, s.currentHour)
+
+        vm.select(Period.D30)
+        runCurrent()
+        s = vm.state.value
+        assertEquals(8, s.hourly.sum())
+        assertEquals(5, s.hourly[22])
+        assertEquals(5, s.heatmap[5][22]) // sábado = índice 5
+    }
+
+    @Test
+    fun `nivel do heatmap e 0 sem eventos e 1 no maximo`() {
+        assertEquals(0f, pt.tiago.cinzeiro.ui.components.heatLevel(0, 10))
+        assertEquals(0f, pt.tiago.cinzeiro.ui.components.heatLevel(3, 0))
+        assertEquals(1f, pt.tiago.cinzeiro.ui.components.heatLevel(10, 10))
+        assertTrue(pt.tiago.cinzeiro.ui.components.heatLevel(2, 10) < pt.tiago.cinzeiro.ui.components.heatLevel(5, 10))
     }
 }
