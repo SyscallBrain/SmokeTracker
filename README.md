@@ -86,6 +86,22 @@ aquecimento: D7 4,29 ms · D30 1,92 ms · D90 2,29 ms · 1 a 2,63 ms. Gatilho do
 
 ### Seed de debug (só no APK debug)
 
+**Como abrir:** no ecrã Hoje, **pressão longa na data** (ex.: «ter, 29 set») → diálogo «Debug» com
+«Gerar dados de teste», «Apagar tudo» e «Sistema de design» (catálogo de cores/componentes do T1).
+No release a data não reage à pressão longa.
+
+
 O código vive em `app/src/debug/` (`SyntheticData`, `createDebugTools`); o `src/release/` devolve
 `null`, por isso o release não contém nada disto. Gera 90 dias (8–18/dia, picos às 8 h, 13 h e
 21 h, semente fixa) e **substitui todos os registos**.
+
+## Ecrã Hoje (T4)
+
+- Data · contagem grande (tnum, animada) · «último há …» (actualiza ao minuto) · botão +1 (128 dp,
+  vibração `LongPress`) · cartões «média 7 dias» (`summary(D7, endInclusive = ontem)`, com variação)
+  e «intervalo hoje» · barras por hora (Vico 3.3.1, hora actual em `primary`).
+- Snackbar «Registado às HH:MM · Desfazer» durante 5 s; «Desfazer» apaga **o id inserido**.
+- Navegação inferior: Hoje · Estatísticas · Histórico (os dois últimos são «Em breve» até T5/T6).
+- Vico: API confirmada nas fontes `compose-android-3.3.1-sources.jar` (`columnModel`,
+  `ColumnCartesianLayer.ColumnProvider`, `CartesianLayerRangeProvider.fixed`); `columnSeries` está
+  deprecado na 3.3.1.
