@@ -15,3 +15,6 @@ val Secondary = Color(0xFF7AA2F7)
 val Tertiary = Color(0xFFBB9AF7)
 val Error = Color(0xFFF7768E)
 val Good = Color(0xFF9ECE6A)
+
+/** Acção do snackbar sobre fundo claro (`#c0caf5`), da maqueta — o `secondary` não tem contraste aí. */
+val SnackbarAction = Color(0xFF2A5BD7)
