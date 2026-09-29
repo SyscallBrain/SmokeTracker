@@ -3,10 +3,7 @@ package pt.tiago.cinzeiro.ui.today
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -20,8 +17,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
-import pt.tiago.cinzeiro.data.SmokeEventDao
-import pt.tiago.cinzeiro.data.SmokeEventEntity
+import pt.tiago.cinzeiro.data.FakeSmokeEventDao
 import pt.tiago.cinzeiro.data.SmokeRepository
 import java.time.Clock
 import java.time.Duration
@@ -38,13 +34,13 @@ class TodayViewModelTest {
     private val clock = Clock.fixed(now, zone)
     private val dispatcher = StandardTestDispatcher()
 
-    private lateinit var dao: FakeDao
+    private lateinit var dao: FakeSmokeEventDao
     private lateinit var repo: SmokeRepository
 
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        dao = FakeDao()
+        dao = FakeSmokeEventDao()
         repo = SmokeRepository(dao, clock)
     }
 
@@ -136,38 +132,3 @@ class TodayViewModelTest {
 }
 
 /** DAO em memória (sem Room): o ViewModel só precisa do contrato. */
-private class FakeDao : SmokeEventDao {
-    val rows = MutableStateFlow<List<SmokeEventEntity>>(emptyList())
-    private var nextId = 1L
-
-    override suspend fun insert(event: SmokeEventEntity): Long {
-        val id = nextId++
-        rows.value = rows.value + event.copy(id = id)
-        return id
-    }
-
-    override suspend fun insertAll(events: List<SmokeEventEntity>) = events.forEach { insert(it) }
-
-    override suspend fun deleteById(id: Long): Int {
-        val before = rows.value.size
-        rows.value = rows.value.filterNot { it.id == id }
-        return before - rows.value.size
-    }
-
-    override suspend fun deleteAll() {
-        rows.value = emptyList()
-    }
-
-    override fun observeBetween(fromMs: Long, toMs: Long): Flow<List<SmokeEventEntity>> =
-        rows.map { l -> l.filter { it.atEpochMs in fromMs until toMs }.sortedWith(compareBy({ it.atEpochMs }, { it.id })) }
-
-    override fun observeLast(): Flow<SmokeEventEntity?> =
-        rows.map { l -> l.maxWithOrNull(compareBy({ it.atEpochMs }, { it.id })) }
-
-    override suspend fun firstEventMs(): Long? = rows.value.minOfOrNull { it.atEpochMs }
-
-    override fun observeFirstEventMs(): Flow<Long?> = rows.map { l -> l.minOfOrNull { it.atEpochMs } }
-
-    override suspend fun countBetween(fromMs: Long, toMs: Long): Int =
-        rows.value.count { it.atEpochMs in fromMs until toMs }
-}
