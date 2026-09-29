@@ -25,3 +25,6 @@ out/
 
 # SO
 .DS_Store
+
+# Logs de build locais
+*.log
