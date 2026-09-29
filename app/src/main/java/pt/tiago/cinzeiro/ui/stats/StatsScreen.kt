@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,6 +25,8 @@ import pt.tiago.cinzeiro.domain.Period
 import pt.tiago.cinzeiro.domain.Summary
 import pt.tiago.cinzeiro.ui.components.DailyBarsChart
 import pt.tiago.cinzeiro.ui.components.EmptyState
+import pt.tiago.cinzeiro.ui.components.HourlyBars
+import pt.tiago.cinzeiro.ui.components.WeekdayHourHeatmap
 import pt.tiago.cinzeiro.ui.components.PeriodSelector
 import pt.tiago.cinzeiro.ui.components.SectionHeader
 import pt.tiago.cinzeiro.ui.components.StatCard
@@ -106,7 +110,16 @@ fun StatsScreen(state: StatsUiState, selected: Period, onSelect: (Period) -> Uni
 /** Secção «Por hora do dia» + heatmap (T6). */
 @Composable
 internal fun PatternsSection(state: StatsUiState) {
-    // Preenchido no T6.
+    val empty = (state.summary?.total ?: 0) == 0
+    val emptyText = if (state.loading) "" else "Sem registos neste período."
+    Card {
+        SectionHeader("Por hora do dia")
+        if (empty) EmptyState(emptyText) else HourlyBars(state.hourly, state.currentHour)
+    }
+    Card {
+        SectionHeader("Hora × dia da semana")
+        if (empty) EmptyState(emptyText, icon = Icons.Rounded.GridView) else WeekdayHourHeatmap(state.heatmap)
+    }
 }
 
 @Composable
