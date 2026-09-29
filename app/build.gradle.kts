@@ -33,6 +33,19 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            // Robolectric 4.17 com SDK 36 acede a jdk.internal.access (ApplicationSharedMemory).
+            it.jvmArgs("--add-exports", "java.base/jdk.internal.access=ALL-UNNAMED")
+            it.jvmArgs("--add-opens", "java.base/java.io=ALL-UNNAMED")
+        }
+    }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 kotlin {
@@ -52,8 +65,12 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
