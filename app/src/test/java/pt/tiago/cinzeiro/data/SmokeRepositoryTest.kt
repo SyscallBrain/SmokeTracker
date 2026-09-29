@@ -131,4 +131,14 @@ class SmokeRepositoryTest {
         job.cancel()
         assertEquals(listOf(SmokeRepository.Change.Inserted(id), SmokeRepository.Change.Deleted(id)), seen)
     }
+
+    @Test
+    fun `allEvents devolve tudo por ordem de instante e depois id`() = runBlocking {
+        val b = repo.logAt(now.minusSeconds(60), lisbon)
+        val a = repo.logAt(now.minusSeconds(3600), ZoneId.of("Asia/Tokyo"))
+        val c = repo.logAt(now.minusSeconds(60), lisbon)
+        val all = repo.allEvents()
+        assertEquals(listOf(a, b, c), all.map { it.id })
+        assertEquals(ZoneId.of("Asia/Tokyo"), all[0].zone)
+    }
 }

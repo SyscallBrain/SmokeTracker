@@ -40,4 +40,8 @@ interface SmokeEventDao {
 
     @Query("SELECT COUNT(*) FROM smoke_event WHERE at_epoch_ms >= :fromMs AND at_epoch_ms < :toMs")
     suspend fun countBetween(fromMs: Long, toMs: Long): Int
+
+    /** Todos os registos por ordem de instante (exportação). */
+    @Query("SELECT * FROM smoke_event ORDER BY at_epoch_ms, id")
+    suspend fun all(): List<SmokeEventEntity>
 }

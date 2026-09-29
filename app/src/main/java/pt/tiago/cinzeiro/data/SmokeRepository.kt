@@ -65,6 +65,9 @@ class SmokeRepository(
     suspend fun countBetween(from: Instant, to: Instant): Int =
         dao.countBetween(from.toEpochMilli(), to.toEpochMilli())
 
+    /** Todos os registos, ordenados por instante (e id), para exportar. */
+    suspend fun allEvents(): List<LoggedEvent> = dao.all().map { it.toLogged() }
+
     /** Só para as ferramentas de debug (seed / apagar tudo). */
     suspend fun replaceAll(events: List<Pair<Instant, ZoneId>>) {
         dao.deleteAll()
