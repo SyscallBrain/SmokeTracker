@@ -36,6 +36,9 @@ export JAVA_HOME=/opt/android-studio/jbr ANDROID_HOME=/opt/android-sdk
 | activity-compose | 1.13.0 |
 | core-ktx | 1.19.1 |
 | JUnit | 4.13.2 |
+| Robolectric (testes do Room na JVM) | 4.17 (SDK 36) |
+| androidx.test core | 1.7.0 |
+| kotlinx-coroutines-test | 1.11.0 |
 
 SDK: `compileSdk = release(37) { minorApiLevel = 2 }`, `targetSdk = 36`, `minSdk = 26`.
 Telemóvel alvo: Android 16 (API 36).
@@ -64,3 +67,25 @@ Desempenho medido (teste `SummaryTest`, 2026-09-29, JVM do host = JBR 21, não t
 `summary` sobre **3 anos × 40 cigarros/dia = 43 840 eventos**, média de 10 execuções após
 aquecimento: D7 4,29 ms · D30 1,92 ms · D90 2,29 ms · 1 a 2,63 ms. Gatilho do ADR é >100 ms
 **no telemóvel** — ainda não medido lá.
+
+## Dados (`data/`)
+
+- Room, tabela `smoke_event(id, at_epoch_ms, zone_id)` com índice em `at_epoch_ms` (ADR §3).
+  Esquema exportado em `app/schemas/pt.tiago.cinzeiro.data.AppDatabase/1.json` — **versionado**,
+  é a base das futuras migrações.
+- Intervalos das consultas (`observeBetween`, `countBetween`): `[from, to)` — início inclusivo,
+  fim exclusivo.
+- `SmokeRepository(dao, clock)`: `logNow()` usa `clock.instant()`/`clock.zone`; `logAt()` rejeita
+  instantes no futuro (`IllegalArgumentException`); `delete(id)` apaga **esse** id.
+  `changes: SharedFlow<Change>` emite após cada inserção/remoção (gancho para o widget do T8).
+- Relógio em produção: `SystemZoneClock` (zona lida em cada chamada — muda com o fuso do telemóvel).
+- Testes do DAO/repositório: Robolectric 4.17 com BD Room em memória
+  (`app/src/test/.../data/SmokeRepositoryTest.kt`). Precisa de
+  `--add-exports java.base/jdk.internal.access=ALL-UNNAMED` na JVM dos testes (já no
+  `app/build.gradle.kts`); sem isso o SDK 36 do Robolectric falha em `ApplicationSharedMemory`.
+
+### Seed de debug (só no APK debug)
+
+O código vive em `app/src/debug/` (`SyntheticData`, `createDebugTools`); o `src/release/` devolve
+`null`, por isso o release não contém nada disto. Gera 90 dias (8–18/dia, picos às 8 h, 13 h e
+21 h, semente fixa) e **substitui todos os registos**.
