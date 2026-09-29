@@ -33,7 +33,8 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
 import pt.tiago.cinzeiro.di.AppContainer
 import pt.tiago.cinzeiro.ui.components.DesignShowcase
-import pt.tiago.cinzeiro.ui.components.EmptyState
+import pt.tiago.cinzeiro.ui.history.HistoryRoute
+import pt.tiago.cinzeiro.ui.history.HistoryViewModel
 import pt.tiago.cinzeiro.ui.stats.StatsRoute
 import pt.tiago.cinzeiro.ui.stats.StatsViewModel
 import pt.tiago.cinzeiro.ui.theme.SnackbarAction
@@ -115,7 +116,12 @@ fun AppNav(container: AppContainer) {
                 )
                 StatsRoute(vm)
             }
-            composable<HistoryDest> { EmptyState("Em breve: histórico, apagar e acrescentar.", icon = Icons.Rounded.History) }
+            composable<HistoryDest> {
+                val vm: HistoryViewModel = viewModel(
+                    factory = viewModelFactory { initializer { HistoryViewModel(container.repository) } },
+                )
+                HistoryRoute(vm, snackbarHostState)
+            }
             composable<DesignDest> { DesignShowcase() }
         }
     }
