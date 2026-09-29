@@ -101,7 +101,35 @@ O código vive em `app/src/debug/` (`SyntheticData`, `createDebugTools`); o `src
   vibração `LongPress`) · cartões «média 7 dias» (`summary(D7, endInclusive = ontem)`, com variação)
   e «intervalo hoje» · barras por hora (Vico 3.3.1, hora actual em `primary`).
 - Snackbar «Registado às HH:MM · Desfazer» durante 5 s; «Desfazer» apaga **o id inserido**.
-- Navegação inferior: Hoje · Estatísticas · Histórico (os dois últimos são «Em breve» até T5/T6).
+- Navegação inferior: Hoje · Estatísticas · Histórico.
 - Vico: API confirmada nas fontes `compose-android-3.3.1-sources.jar` (`columnModel`,
   `ColumnCartesianLayer.ColumnProvider`, `CartesianLayerRangeProvider.fixed`); `columnSeries` está
   deprecado na 3.3.1.
+
+## Estatísticas (T5/T6)
+
+- Período 7 d · 30 d · 90 d · 1 a; cartões total, média/dia, dias sem fumar, máximo; barras diárias
+  (7/30 d) ou semanais (90 d/1 a) com média móvel de 7 d (Vico 3.3.1, `columnModel`).
+- «Por hora do dia» (barras 0–23) e heatmap hora × dia da semana (Canvas, segunda = linha 0, `S T Q Q S S D`).
+
+## Histórico (T7)
+
+- Lista por dia local, páginas de 30 dias; deslizar para a esquerda apaga, snackbar «Desfazer»
+  repõe o mesmo instante e zona (id novo). «Adicionar»: DatePicker + TimePicker M3 24 h; futuro
+  bloqueado na UI e no repositório.
+
+## Exportar (T10)
+
+- Histórico → ícone de descarregar → CSV ou JSON; ficheiro escolhido pelo SAF (`CreateDocument`),
+  sem permissões. Formatos em `domain/export/` (ADR §Decisão 10):
+  - CSV: `id,instant_utc,zone_id,local_datetime`, UTF-8 sem BOM, `\n`.
+  - JSON: `{format:"cinzeiro-export", version:1, exported_at, app_version, count, events:[…]}`.
+
+## Widget (T8)
+
+- Glance 2×1: contagem de hoje, «último HH:MM» (hora absoluta), botão «+1».
+- Actualiza após o +1 (`updateAll` no `ActionCallback`), sempre que o repositório emite `changes`
+  (em `App`, scope de aplicação) e à meia-noite local (WorkManager one-off reagendado).
+- Permissões novas no APK vêm do `work-runtime` (WAKE_LOCK, ACCESS_NETWORK_STATE,
+  RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE) — todas «normal», concedidas na instalação.
+
