@@ -48,3 +48,19 @@ O APK debug do T0 foi enviado com `apk-to-phone` para
 Falta o Tiago instalá-lo e confirmar que abre com fundo escuro. Não há adb neste
 host, logo `adb shell getprop ro.build.version.sdk` não foi corrido (Android 16 é
 o valor declarado pelo Tiago).
+
+## Estatísticas (`domain/`)
+
+Kotlin puro (`java.time`, sem `android.*`), testado na JVM com `./gradlew testDebugUnitTest`.
+
+- O dia termina à meia-noite local da zona de cada registo.
+- `summary(..., endInclusive = hoje)` conta hoje como **dia inteiro** no `perDay` mesmo que
+  ainda esteja a decorrer (simplicidade > precisão ao décimo). O cartão «média 7 dias» do ecrã
+  Hoje usa `endInclusive = ontem` para não ser puxado para baixo pelo dia parcial.
+- `perDay` divide por `min(N, dias desde o primeiro registo + 1)`.
+- `deltaPct` é `null` se o período anterior começar antes do primeiro registo ou tiver média 0.
+
+Desempenho medido (teste `SummaryTest`, 2026-09-29, JVM do host = JBR 21, não telemóvel):
+`summary` sobre **3 anos × 40 cigarros/dia = 43 840 eventos**, média de 10 execuções após
+aquecimento: D7 4,29 ms · D30 1,92 ms · D90 2,29 ms · 1 a 2,63 ms. Gatilho do ADR é >100 ms
+**no telemóvel** — ainda não medido lá.
