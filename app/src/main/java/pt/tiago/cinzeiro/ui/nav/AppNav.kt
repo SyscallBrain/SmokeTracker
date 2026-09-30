@@ -18,6 +18,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
+import pt.tiago.cinzeiro.feedback.Feedback
+import pt.tiago.cinzeiro.feedback.FeedbackOrigin
+import pt.tiago.cinzeiro.ui.settings.SettingsRoute
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -47,6 +54,7 @@ import kotlin.reflect.KClass
 @Serializable data object StatsDest
 @Serializable data object HistoryDest
 @Serializable data object DesignDest
+@Serializable data object SettingsDest
 
 private data class TopLevel(val route: Any, val cls: KClass<*>, val label: String, val icon: ImageVector)
 
@@ -109,7 +117,21 @@ fun AppNav(container: AppContainer) {
                         initializer { TodayViewModel(container.repository, container.debugTools) }
                     },
                 )
-                TodayRoute(vm, snackbarHostState, onOpenDesignShowcase = { nav.navigate(DesignDest) })
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
+                val settings by container.settings.settings.collectAsStateWithLifecycle(initialValue = null)
+                TodayRoute(
+                    vm,
+                    snackbarHostState,
+                    onOpenDesignShowcase = { nav.navigate(DesignDest) },
+                    onOpenSettings = { nav.navigate(SettingsDest) { launchSingleTop = true } },
+                    onPlusOneFeedback = {
+                        scope.launch {
+                            val current = settings ?: container.settings.current()
+                            Feedback.performAndLog(context, current, FeedbackOrigin.APP)
+                        }
+                    },
+                )
             }
             composable<StatsDest> {
                 val vm: StatsViewModel = viewModel(
@@ -124,6 +146,7 @@ fun AppNav(container: AppContainer) {
                 HistoryRoute(vm, snackbarHostState)
             }
             composable<DesignDest> { DesignShowcase() }
+            composable<SettingsDest> { SettingsRoute(container.settings, onBack = { nav.popBackStack() }) }
         }
     }
 }

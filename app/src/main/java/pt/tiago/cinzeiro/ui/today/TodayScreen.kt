@@ -20,7 +20,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -38,8 +42,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -71,6 +73,8 @@ fun TodayRoute(
     viewModel: TodayViewModel,
     snackbarHostState: SnackbarHostState,
     onOpenDesignShowcase: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onPlusOneFeedback: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -98,7 +102,11 @@ fun TodayRoute(
     TodayScreen(
         state = state,
         now = viewModel::now,
-        onPlusOne = viewModel::logNow,
+        onPlusOne = {
+            onPlusOneFeedback()
+            viewModel.logNow()
+        },
+        onOpenSettings = onOpenSettings,
         debugActions = if (viewModel.hasDebugTools) {
             DebugActions(viewModel::seedDebugData, viewModel::clearAllDebug, onOpenDesignShowcase)
         } else {
@@ -116,10 +124,10 @@ fun TodayScreen(
     state: TodayUiState,
     now: () -> Instant,
     onPlusOne: () -> Unit,
+    onOpenSettings: () -> Unit = {},
     debugActions: DebugActions? = null,
 ) {
     val cs = MaterialTheme.colorScheme
-    val haptic = LocalHapticFeedback.current
     var showDebug by remember { mutableStateOf(false) }
 
     Column(
@@ -129,16 +137,23 @@ fun TodayScreen(
             .padding(horizontal = Dimens.screenPadding, vertical = Dimens.s),
         verticalArrangement = Arrangement.spacedBy(Dimens.m),
     ) {
-        Text(
-            text = state.date?.let(Formats::dayHeader) ?: "",
-            style = MaterialTheme.typography.bodyMedium,
-            color = cs.onSurfaceVariant,
-            modifier = Modifier.combinedClickable(
-                enabled = debugActions != null,
-                onClick = {},
-                onLongClick = { showDebug = true },
-            ),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = state.date?.let(Formats::dayHeader) ?: "",
+                style = MaterialTheme.typography.bodyMedium,
+                color = cs.onSurfaceVariant,
+                modifier = Modifier
+                    .weight(1f)
+                    .combinedClickable(
+                        enabled = debugActions != null,
+                        onClick = {},
+                        onLongClick = { showDebug = true },
+                    ),
+            )
+            IconButton(onClick = onOpenSettings) {
+                Icon(Icons.Rounded.Settings, contentDescription = "Definições", tint = cs.onSurfaceVariant)
+            }
+        }
 
         AnimatedContent(
             targetState = state.countToday,
@@ -168,10 +183,7 @@ fun TodayScreen(
         )
 
         Button(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onPlusOne()
-            },
+            onClick = onPlusOne,
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(containerColor = cs.primary, contentColor = cs.onPrimary),
             modifier = Modifier
