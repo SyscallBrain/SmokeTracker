@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">SmokeTracker</string>
     <string name="widget_description">Contagem de hoje e +1 com um toque</string>
+    <string name="widget_today">hoje</string>
+    <string name="widget_plus_one" translatable="false">+1</string>
+    <string name="widget_log_description">Registar um cigarro</string>
 </resources>

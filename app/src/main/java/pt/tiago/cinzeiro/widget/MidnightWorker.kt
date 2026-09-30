@@ -1,7 +1,6 @@
 package pt.tiago.cinzeiro.widget
 
 import android.content.Context
-import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -29,8 +28,7 @@ class MidnightWorker(context: Context, params: WorkerParameters) : CoroutineWork
         /** Margem para não acordar uns milissegundos antes da meia-noite e desenhar ainda «ontem». */
         private const val MARGIN_MS = 5_000L
 
-        suspend fun hasWidgets(context: Context): Boolean =
-            GlanceAppWidgetManager(context).getGlanceIds(CinzeiroWidget::class.java).isNotEmpty()
+        fun hasWidgets(context: Context): Boolean = WidgetUpdater.widgetIds(context).isNotEmpty()
 
         fun schedule(context: Context, policy: ExistingWorkPolicy = ExistingWorkPolicy.KEEP) {
             val delay = durationUntilNextLocalMidnight(Instant.now(), ZoneId.systemDefault()).toMillis() + MARGIN_MS

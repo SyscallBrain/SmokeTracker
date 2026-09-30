@@ -1,12 +1,7 @@
 package pt.tiago.cinzeiro.widget
 
-import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.mutablePreferencesOf
-import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 import pt.tiago.cinzeiro.data.LoggedEvent
 import pt.tiago.cinzeiro.domain.SmokeEvent
@@ -89,35 +84,23 @@ class WidgetStateTest {
         assertEquals(WidgetState(0, "último 21:00", today), s.displayedOn(today.plusDays(1)))
     }
 
+    // --- R5: textos do widget (RemoteViews) ---
+
     @Test
-    fun `WidgetState ida e volta pelas Preferences`() {
-        val s = WidgetState(7, "último 13:32", today)
-        val prefs = emptyPreferences().toMutablePreferences().apply { s.writeTo(this) }
-        assertEquals(s, WidgetState.readFrom(prefs))
-        assertEquals(7, prefs[intPreferencesKey("count")])
-        assertEquals("2026-09-30", prefs[stringPreferencesKey("day")])
+    fun `widgetTexts mostra contagem e ultimo do proprio dia`() {
+        assertEquals(WidgetTexts("7", "último 13:32"), widgetTexts(WidgetState(7, "último 13:32", today)))
     }
 
     @Test
-    fun `writeTo substitui o estado anterior`() {
-        val prefs = emptyPreferences().toMutablePreferences()
-        WidgetState(1, "último 10:00", today).writeTo(prefs)
-        WidgetState(2, "último 10:05", today).writeTo(prefs)
-        assertEquals(WidgetState(2, "último 10:05", today), WidgetState.readFrom(prefs))
-    }
-
-    @Test
-    fun `readFrom devolve null sem push ou com estado incompleto ou corrompido`() {
-        assertNull(WidgetState.readFrom(emptyPreferences()))
-        assertNull(WidgetState.readFrom(mutablePreferencesOf(intPreferencesKey("count") to 3)))
-        assertNull(
-            WidgetState.readFrom(
-                mutablePreferencesOf(
-                    intPreferencesKey("count") to 3,
-                    stringPreferencesKey("lastLabel") to "x",
-                    stringPreferencesKey("day") to "ontem",
-                ),
-            ),
+    fun `widgetTexts de estado de ontem mostra zero mas mantem o ultimo`() {
+        assertEquals(
+            WidgetTexts("0", "último 21:00"),
+            widgetTexts(WidgetState(4, "último 21:00", today), today.plusDays(1)),
         )
+    }
+
+    @Test
+    fun `widgetTexts sem registos`() {
+        assertEquals(WidgetTexts("0", "sem registos"), widgetTexts(WidgetState(0, "sem registos", today)))
     }
 }

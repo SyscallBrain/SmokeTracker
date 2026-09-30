@@ -54,22 +54,36 @@ class FeedbackLogTest {
     }
 
     @Test fun push_line_sem_erros() = assertEquals(
-        "2026-09-30T14:03:12+01:00 origem=widget-push chamador=app ids=1 count=5 dia=2026-09-30 erros=-",
-        FeedbackLog.pushLine("app", 1, WidgetState(5, "último 14:03", LocalDate.of(2026, 9, 30)), emptyList(), at),
+        "2026-09-30T14:03:12+01:00 origem=widget-push chamador=app ids=1 count=5 dia=2026-09-30 render=ok erros=-",
+        FeedbackLog.pushLine("app", 1, WidgetState(5, "último 14:03", LocalDate.of(2026, 9, 30)), Result.success(Unit), emptyList(), at),
     )
 
     @Test fun push_line_com_erro_antes_de_saber_os_ids() {
-        val line = FeedbackLog.pushLine("action", -1, null, listOf(IllegalStateException("a\n\"b\"")), at)
+        val line = FeedbackLog.pushLine("action", -1, null, null, listOf(IllegalStateException("a\n\"b\"")), at)
         assertEquals(
-            "2026-09-30T14:03:12+01:00 origem=widget-push chamador=action ids=-1 count=- dia=- " +
+            "2026-09-30T14:03:12+01:00 origem=widget-push chamador=action ids=-1 count=- dia=- render=- " +
                 "erros=\"IllegalStateException:a 'b'\"",
             line,
         )
         assertEquals(1, line.lines().size)
     }
 
-    @Test fun provide_line() = assertEquals(
-        "2026-09-30T14:03:12+01:00 origem=widget-provide id=AppWidgetId(appWidgetId=12) count=3 dia=2026-09-30 semeado=true",
-        FeedbackLog.provideLine("AppWidgetId(appWidgetId = 12)", WidgetState(3, "x", LocalDate.of(2026, 9, 30)), true, at),
+    @Test fun push_line_com_erro_no_render() = assertEquals(
+        "2026-09-30T14:03:12+01:00 origem=widget-push chamador=system ids=2 count=3 dia=2026-09-30 " +
+            "render=\"IllegalArgumentException:views grandes\" erros=-",
+        FeedbackLog.pushLine(
+            "system", 2, WidgetState(3, "x", LocalDate.of(2026, 9, 30)),
+            Result.failure(IllegalArgumentException("views grandes")), emptyList(), at,
+        ),
+    )
+
+    @Test fun push_line_sem_widgets() = assertEquals(
+        "2026-09-30T14:03:12+01:00 origem=widget-push chamador=onStop ids=0 count=- dia=- render=- erros=-",
+        FeedbackLog.pushLine("onStop", 0, null, null, emptyList(), at),
+    )
+
+    @Test fun action_error_line() = assertEquals(
+        "2026-09-30T14:03:12+01:00 origem=widget-action erros=\"IllegalStateException:bd\"",
+        FeedbackLog.actionErrorLine(IllegalStateException("bd"), at),
     )
 }
