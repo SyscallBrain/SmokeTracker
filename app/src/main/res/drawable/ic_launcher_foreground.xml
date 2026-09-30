@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fonte: architect/workspace/diagrams/2026-09-30_smoketracker-icone.html (<g id="fg">), grelha 108 dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:rotation="-35" android:pivotX="54" android:pivotY="54">
+        <path android:fillColor="#ff9e64" android:fillAlpha="0.55" android:pathData="M29.5,48h9a2.5,2.5 0,0 1,2.5,2.5v7a2.5,2.5 0,0 1,-2.5,2.5h-9a2.5,2.5 0,0 1,-2.5,-2.5v-7a2.5,2.5 0,0 1,2.5,-2.5z" />
+        <path android:fillColor="#c0caf5" android:pathData="M42.5,48h31a1.5,1.5 0,0 1,1.5,1.5v9a1.5,1.5 0,0 1,-1.5,1.5h-31a1.5,1.5 0,0 1,-1.5,-1.5v-9a1.5,1.5 0,0 1,1.5,-1.5z" />
+        <path android:fillColor="#ff9e64" android:pathData="M77,48h3a2,2 0,0 1,2,2v8a2,2 0,0 1,-2,2h-3a2,2 0,0 1,-2,-2v-8a2,2 0,0 1,2,-2z" />
+    </group>
+    <path android:strokeColor="#7aa2f7" android:strokeAlpha="0.85" android:strokeWidth="3" android:strokeLineCap="round" android:fillColor="#00000000" android:pathData="M73,38C70,33 77,30 74,25S77,18 75,14" />
+    <path android:fillColor="#7aa2f7" android:pathData="M36,72h2a2,2 0,0 1,2,2v4a2,2 0,0 1,-2,2h-2a2,2 0,0 1,-2,-2v-4a2,2 0,0 1,2,-2z" />
+    <path android:fillColor="#7aa2f7" android:pathData="M45,67h2a2,2 0,0 1,2,2v9a2,2 0,0 1,-2,2h-2a2,2 0,0 1,-2,-2v-9a2,2 0,0 1,2,-2z" />
+    <path android:fillColor="#7aa2f7" android:pathData="M54,70h2a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-2a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z" />
+    <path android:fillColor="#ff9e64" android:pathData="M63,64h2a2,2 0,0 1,2,2v12a2,2 0,0 1,-2,2h-2a2,2 0,0 1,-2,-2v-12a2,2 0,0 1,2,-2z" />
+</vector>
