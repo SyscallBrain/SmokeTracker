@@ -15,11 +15,11 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Grava o stack trace de cada crash em Download/crashlogs/ do telemóvel,
- * para ser lido por SSH (Termux) — não há adb/logcat disponível.
+ * Writes the stack trace of every crash to the device's Download/crashlogs/ folder, so it can
+ * be read without adb/logcat (e.g. with any file manager or over a shell on the device).
  *
- * Só actua em builds debuggable: uma release nunca escreve na pasta do utilizador.
- * Instalar o mais cedo possível: Application.onCreate().
+ * Only active in debuggable builds: a release build never writes to the user's folders.
+ * Install as early as possible: Application.onCreate().
  */
 object CrashLog {
     private const val SUBDIR = "crashlogs"
@@ -30,24 +30,24 @@ object CrashLog {
 
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
-            // Nunca deixar uma falha ao gravar esconder o crash original.
+            // Never let a failure while writing hide the original crash.
             runCatching { write(app, thread, error) }
             previous?.uncaughtException(thread, error)
         }
     }
 
     /**
-     * Acrescenta [lines] a um ficheiro de texto em Download/crashlogs/[name] (mesmo sítio dos
-     * crashes), guardando só as últimas [maxLines]. Para diagnósticos «silenciosos» (ex.: log de
-     * feedback do +1). Só em builds debuggable. Chamar fora da thread principal se possível.
+     * Appends [lines] to a text file in Download/crashlogs/[name] (same place as the crashes),
+     * keeping only the last [maxLines]. For "silent" diagnostics (e.g. the +1 feedback log).
+     * Debuggable builds only. Call off the main thread if possible.
      *
-     * [name] tem de terminar em `.txt`: com MIME `text/plain` o MediaStore acrescenta `.txt` a
-     * qualquer outra extensão (`x.log` → `x.log.txt`), a consulta pelo nome pedido deixava de
-     * encontrar o ficheiro e cada chamada criava um novo (`x.log (1).txt`…) — bug da 0.5.0.
+     * [name] must end in `.txt`: with MIME `text/plain`, MediaStore appends `.txt` to any other
+     * extension (`x.log` → `x.log.txt`), so the lookup by the requested name no longer found the
+     * file and every call created a new one (`x.log (1).txt`…) — the 0.5.0 bug.
      */
     @Synchronized
     fun appendLines(context: Context, name: String, lines: List<String>, maxLines: Int) {
-        require(name.endsWith(".txt")) { "O MediaStore renomeia para .txt; usar um nome .txt: $name" }
+        require(name.endsWith(".txt")) { "MediaStore renames files to .txt; use a .txt name: $name" }
         if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val resolver = context.contentResolver
@@ -81,7 +81,7 @@ object CrashLog {
         }
     }
 
-    /** Conteúdo antigo + novas linhas, só as últimas [maxLines], terminado em \n. */
+    /** Old content + new lines, only the last [maxLines], terminated by \n. */
     internal fun keepLast(old: String, lines: List<String>, maxLines: Int): String =
         (old.lines().filter { it.isNotEmpty() } + lines).takeLast(maxLines).joinToString("\n", postfix = "\n")
 
@@ -96,7 +96,7 @@ object CrashLog {
         }.getOrNull() ?: "?"
         val text = buildString {
             appendLine("app:     ${context.packageName} $versionName")
-            appendLine("quando:  ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", Locale.US).format(now)}")
+            appendLine("time:    ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", Locale.US).format(now)}")
             appendLine("android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), ${Build.MANUFACTURER} ${Build.MODEL}")
             appendLine("thread:  ${thread.name}")
             appendLine()
@@ -104,7 +104,7 @@ object CrashLog {
         }.toByteArray()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10+: MediaStore, sem permissões. O ficheiro fica em /storage/emulated/0/Download/crashlogs/.
+            // Android 10+: MediaStore, no permissions needed. The file ends up in /storage/emulated/0/Download/crashlogs/.
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, name)
                 put(MediaStore.Downloads.MIME_TYPE, "text/plain")
@@ -114,7 +114,7 @@ object CrashLog {
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return
             resolver.openOutputStream(uri)?.use { it.write(text) }
         } else {
-            // Android 8–9: pasta privada da app (Android/data/<pkg>/files/crashlogs/), sem permissões.
+            // Android 8–9: the app's private folder (Android/data/<pkg>/files/crashlogs/), no permissions needed.
             val dir = File(context.getExternalFilesDir(null), SUBDIR).apply { mkdirs() }
             File(dir, name).writeBytes(text)
         }

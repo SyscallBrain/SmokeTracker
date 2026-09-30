@@ -9,9 +9,9 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 /**
- * Diagnóstico do feedback do +1 (R3.0) e dos redesenhos do widget (R4/R5): uma linha por evento em
- * `Download/crashlogs/pt.tiago.cinzeiro-feedback.txt` (mesmo mecanismo do [CrashLog]; só em builds
- * debuggable; guarda as últimas [MAX_LINES] linhas). `.txt` e não `.log`: ver [CrashLog.appendLines].
+ * Diagnostics for the +1 feedback (R3.0) and for widget redraws (R4/R5): one line per event in
+ * `Download/crashlogs/pt.tiago.cinzeiro-feedback.txt` (same mechanism as [CrashLog]; debuggable
+ * builds only; keeps the last [MAX_LINES] lines). `.txt` rather than `.log`: see [CrashLog.appendLines].
  */
 object FeedbackLog {
     const val MAX_LINES = 200
@@ -23,11 +23,11 @@ object FeedbackLog {
     }
 
     /**
-     * Uma linha por [pt.tiago.cinzeiro.widget.WidgetUpdater.push]:
-     * `origem=widget-push chamador=<action|app|midnight|onStop|system> ids=<n> count=<n> dia=<d>
-     * render=<ok|Classe:mensagem|-> erros=<classe:mensagem|->`.
-     * `ids=-1`/`count=-` quando falhou antes de os saber; `render=-` quando não chegou a desenhar
-     * (sem widgets ou erro antes). R5: `render` é o resultado de `AppWidgetManager.updateAppWidget`.
+     * One line per [pt.tiago.cinzeiro.widget.WidgetUpdater.push]:
+     * `origin=widget-push caller=<action|app|midnight|onStop|system> ids=<n> count=<n> day=<d>
+     * render=<ok|Class:message|-> errors=<Class:message|->`.
+     * `ids=-1`/`count=-` when it failed before knowing them; `render=-` when it never got to draw
+     * (no widgets, or an earlier error). R5: `render` is the result of `AppWidgetManager.updateAppWidget`.
      */
     fun pushLine(
         caller: String,
@@ -38,20 +38,20 @@ object FeedbackLog {
         now: OffsetDateTime = OffsetDateTime.now(),
     ): String = listOf(
         now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
-        "origem=widget-push",
-        "chamador=$caller",
+        "origin=widget-push",
+        "caller=$caller",
         "ids=$ids",
         "count=${state?.todayCount ?: "-"}",
-        "dia=${state?.day ?: "-"}",
+        "day=${state?.day ?: "-"}",
         "render=" + renderField(render),
-        "erros=" + errorsField(errors),
+        "errors=" + errorsField(errors),
     ).joinToString(" ")
 
-    /** R5: erro do «+1» do widget antes do push (gravar, feedback); o push regista-se à parte. */
+    /** R5: error in the widget "+1" before the push (saving, feedback); the push is logged separately. */
     fun actionErrorLine(error: Throwable, now: OffsetDateTime = OffsetDateTime.now()): String = listOf(
         now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
-        "origem=widget-action",
-        "erros=" + errorsField(listOf(error)),
+        "origin=widget-action",
+        "errors=" + errorsField(listOf(error)),
     ).joinToString(" ")
 
     private fun renderField(render: Result<Unit>?): String = when {
@@ -65,7 +65,7 @@ object FeedbackLog {
         else "\"" + errors.joinToString(" | ") { "${it.javaClass.simpleName}:${it.message}" }
             .replace("\n", " ").replace("\"", "'") + "\""
 
-    /** Linha `chave=valor` separada por espaços; valores sem espaços (erros entre aspas). */
+    /** Space-separated `key=value` line; values contain no spaces (errors are quoted). */
     fun line(
         origin: String,
         settings: Settings,
@@ -79,20 +79,20 @@ object FeedbackLog {
         sdk: Int = Build.VERSION.SDK_INT,
     ): String = buildList {
         add(now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
-        add("origem=$origin")
+        add("origin=$origin")
         add("api=$sdk")
         add("importance=$importance")
-        add("vibrar=${settings.vibrate}")
-        add("tipo=${settings.vibrationType.name}")
+        add("vibrate=${settings.vibrate}")
+        add("type=${settings.vibrationType.name}")
         add("hasVibrator=${outcome?.hasVibrator ?: "-"}")
         add("hasAmplitudeControl=${outcome?.hasAmplitudeControl ?: "-"}")
-        add("efeito=${outcome?.effect ?: "-"}")
+        add("effect=${outcome?.effect ?: "-"}")
         add("usage=${outcome?.usage ?: "-"}")
-        add("vibracaoPedida=${outcome?.requested ?: false}")
-        add("mostrarMensagem=${settings.showMessage}")
-        add("notificacoes=$notificationsEnabled")
+        add("vibrationRequested=${outcome?.requested ?: false}")
+        add("showMessage=${settings.showMessage}")
+        add("notifications=$notificationsEnabled")
         add("powerSave=$powerSave")
-        add("toastPedido=$toastRequested")
-        add("erros=" + if (errors.isEmpty()) "-" else "\"" + errors.joinToString(" | ").replace("\n", " ") + "\"")
+        add("toastRequested=$toastRequested")
+        add("errors=" + if (errors.isEmpty()) "-" else "\"" + errors.joinToString(" | ").replace("\n", " ") + "\"")
     }.joinToString(" ")
 }

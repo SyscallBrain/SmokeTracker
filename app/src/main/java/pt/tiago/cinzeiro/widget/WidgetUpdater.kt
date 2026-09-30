@@ -11,21 +11,21 @@ import kotlinx.coroutines.withContext
 import pt.tiago.cinzeiro.App
 import pt.tiago.cinzeiro.feedback.FeedbackLog
 
-/** Quem pediu o push (vai para o log de diagnóstico). */
+/** Who requested the push (goes to the diagnostic log). */
 enum class PushCaller(val tag: String) {
     ACTION("action"), APP("app"), MIDNIGHT("midnight"), ON_STOP("onStop"), SYSTEM("system")
 }
 
 /**
- * Único caminho para mudar o que o widget mostra: lê a BD, constrói as `RemoteViews`
- * ([WidgetViews.build]) e entrega-as de uma vez com `AppWidgetManager.updateAppWidget(ids, views)`
- * (R5: síncrono, sem sessão nem composição).
+ * The only path to change what the widget shows: reads the DB, builds the `RemoteViews`
+ * ([WidgetViews.build]) and delivers them at once with `AppWidgetManager.updateAppWidget(ids, views)`
+ * (R5: synchronous, no session or composition).
  *
- * Serializado com um [Mutex]: pushes concorrentes (app + widget + meia-noite) não se intercalam
- * e o último a terminar é sempre o que leu a BD por último.
+ * Serialized with a [Mutex]: concurrent pushes (app + widget + midnight) do not interleave
+ * and the last one to finish is always the one that read the DB last.
  *
- * Nunca lança (excepto cancelamento): os erros vão para a linha `origem=widget-push` do log de
- * diagnóstico (`render=ok|<Classe:mensagem>` para o desenho, `erros=` para o resto).
+ * Never throws (except cancellation): errors go to the `origin=widget-push` line of the diagnostic
+ * log (`render=ok|<Class:message>` for drawing, `errors=` for the rest).
  */
 object WidgetUpdater {
     private val mutex = Mutex()

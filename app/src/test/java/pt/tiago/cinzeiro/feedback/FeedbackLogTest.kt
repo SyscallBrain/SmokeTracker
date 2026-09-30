@@ -28,9 +28,9 @@ class FeedbackLogTest {
             sdk = 36,
         )
         assertEquals(
-            "2026-09-30T14:03:12+01:00 origem=widget api=36 importance=300 vibrar=true tipo=DOUBLE " +
-                "hasVibrator=true hasAmplitudeControl=false efeito=waveform(0/50/80/50ms) usage=HARDWARE_FEEDBACK " +
-                "vibracaoPedida=true mostrarMensagem=true notificacoes=false powerSave=false toastPedido=true erros=-",
+            "2026-09-30T14:03:12+01:00 origin=widget api=36 importance=300 vibrate=true type=DOUBLE " +
+                "hasVibrator=true hasAmplitudeControl=false effect=waveform(0/50/80/50ms) usage=HARDWARE_FEEDBACK " +
+                "vibrationRequested=true showMessage=true notifications=false powerSave=false toastRequested=true errors=-",
             line,
         )
     }
@@ -48,42 +48,42 @@ class FeedbackLogTest {
             now = at,
             sdk = 36,
         )
-        assertTrue(line, line.contains("vibrar=false tipo=SHORT hasVibrator=- "))
-        assertTrue(line, line.endsWith("erros=\"toast: RuntimeException: a b\""))
+        assertTrue(line, line.contains("vibrate=false type=SHORT hasVibrator=- "))
+        assertTrue(line, line.endsWith("errors=\"toast: RuntimeException: a b\""))
         assertEquals(1, line.lines().size)
     }
 
-    @Test fun push_line_sem_erros() = assertEquals(
-        "2026-09-30T14:03:12+01:00 origem=widget-push chamador=app ids=1 count=5 dia=2026-09-30 render=ok erros=-",
+    @Test fun push_line_without_errors() = assertEquals(
+        "2026-09-30T14:03:12+01:00 origin=widget-push caller=app ids=1 count=5 day=2026-09-30 render=ok errors=-",
         FeedbackLog.pushLine("app", 1, WidgetState(5, "último 14:03", LocalDate.of(2026, 9, 30)), Result.success(Unit), emptyList(), at),
     )
 
-    @Test fun push_line_com_erro_antes_de_saber_os_ids() {
+    @Test fun push_line_with_error_before_ids_are_known() {
         val line = FeedbackLog.pushLine("action", -1, null, null, listOf(IllegalStateException("a\n\"b\"")), at)
         assertEquals(
-            "2026-09-30T14:03:12+01:00 origem=widget-push chamador=action ids=-1 count=- dia=- render=- " +
-                "erros=\"IllegalStateException:a 'b'\"",
+            "2026-09-30T14:03:12+01:00 origin=widget-push caller=action ids=-1 count=- day=- render=- " +
+                "errors=\"IllegalStateException:a 'b'\"",
             line,
         )
         assertEquals(1, line.lines().size)
     }
 
-    @Test fun push_line_com_erro_no_render() = assertEquals(
-        "2026-09-30T14:03:12+01:00 origem=widget-push chamador=system ids=2 count=3 dia=2026-09-30 " +
-            "render=\"IllegalArgumentException:views grandes\" erros=-",
+    @Test fun push_line_with_render_error() = assertEquals(
+        "2026-09-30T14:03:12+01:00 origin=widget-push caller=system ids=2 count=3 day=2026-09-30 " +
+            "render=\"IllegalArgumentException:views too large\" errors=-",
         FeedbackLog.pushLine(
             "system", 2, WidgetState(3, "x", LocalDate.of(2026, 9, 30)),
-            Result.failure(IllegalArgumentException("views grandes")), emptyList(), at,
+            Result.failure(IllegalArgumentException("views too large")), emptyList(), at,
         ),
     )
 
-    @Test fun push_line_sem_widgets() = assertEquals(
-        "2026-09-30T14:03:12+01:00 origem=widget-push chamador=onStop ids=0 count=- dia=- render=- erros=-",
+    @Test fun push_line_without_widgets() = assertEquals(
+        "2026-09-30T14:03:12+01:00 origin=widget-push caller=onStop ids=0 count=- day=- render=- errors=-",
         FeedbackLog.pushLine("onStop", 0, null, null, emptyList(), at),
     )
 
     @Test fun action_error_line() = assertEquals(
-        "2026-09-30T14:03:12+01:00 origem=widget-action erros=\"IllegalStateException:bd\"",
+        "2026-09-30T14:03:12+01:00 origin=widget-action errors=\"IllegalStateException:bd\"",
         FeedbackLog.actionErrorLine(IllegalStateException("bd"), at),
     )
 }

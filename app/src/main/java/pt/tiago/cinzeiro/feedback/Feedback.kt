@@ -16,26 +16,26 @@ import pt.tiago.cinzeiro.settings.Settings
 import pt.tiago.cinzeiro.settings.VibrationPatterns
 import pt.tiago.cinzeiro.settings.VibrationSpec
 
-enum class FeedbackOrigin(val tag: String) { WIDGET("widget"), APP("app"), TEST("testar") }
+enum class FeedbackOrigin(val tag: String) { WIDGET("widget"), APP("app"), TEST("test") }
 
 /**
- * Feedback do +1 (app e widget) e do botão «Testar» das Definições. Cada chamada acrescenta uma
- * linha ao log de diagnóstico (R3.0, só debug) com o que foi pedido e o estado do sistema.
+ * Feedback for the +1 (app and widget) and for the "Testar" button in Settings. Each call appends a
+ * line to the diagnostic log (R3.0, debug only) with what was requested and the system state.
  *
- * Porque `USAGE_HARDWARE_FEEDBACK`: no AOSP, `VibrationSettings.shouldIgnoreVibration` devolve
- * `IGNORED_BACKGROUND` para uids fora do primeiro plano cujo uso não esteja em
+ * Why `USAGE_HARDWARE_FEEDBACK`: in AOSP, `VibrationSettings.shouldIgnoreVibration` returns
+ * `IGNORED_BACKGROUND` for non-foreground uids whose usage is not in
  * `BACKGROUND_PROCESS_USAGE_ALLOWLIST` (RINGTONE, ALARM, NOTIFICATION, COMMUNICATION_REQUEST,
- * HARDWARE_FEEDBACK, PHYSICAL_EMULATION). O +1 do widget corre num BroadcastReceiver (fundo).
- * HARDWARE_FEEDBACK também está em `BATTERY_SAVER_USAGE_ALLOWLIST` e não é cortado pelo modo
- * silencioso (`shouldVibrateForRingerModeLocked` só corta RINGTONE/NOTIFICATION).
+ * HARDWARE_FEEDBACK, PHYSICAL_EMULATION). The widget's +1 runs in a BroadcastReceiver (background).
+ * HARDWARE_FEEDBACK is also in `BATTERY_SAVER_USAGE_ALLOWLIST` and is not cut by silent mode
+ * (`shouldVibrateForRingerModeLocked` only cuts RINGTONE/NOTIFICATION).
  *
- * Toast: `NotificationManagerService.checkCanEnqueueToast` suprime Toasts de apps que não estão em
- * `IMPORTANCE_FOREGROUND` **e** têm as notificações desligadas (`POST_NOTIFICATIONS` em falta no
- * Android 13+). Daí o pedido da permissão.
+ * Toast: `NotificationManagerService.checkCanEnqueueToast` suppresses Toasts from apps that are not
+ * at `IMPORTANCE_FOREGROUND` **and** have notifications disabled (`POST_NOTIFICATIONS` missing on
+ * Android 13+). Hence the permission request.
  */
 object Feedback {
 
-    /** Toca o padrão do tipo escolhido. Devolve a descrição do que foi pedido (para o log). */
+    /** Plays the pattern of the chosen type. Returns the description of what was requested (for the log). */
     fun vibrate(context: Context, settings: Settings): VibrationOutcome {
         val vibrator = vibrator(context)
         val spec = VibrationPatterns.spec(settings.vibrationType)
@@ -59,8 +59,8 @@ object Feedback {
     }
 
     /**
-     * Vibra e/ou mostra o Toast (na thread principal) conforme [settings] e depois grava a linha de
-     * diagnóstico (em IO). Nunca lança.
+     * Vibrates and/or shows the Toast (on the main thread) according to [settings], then writes the
+     * diagnostic line (on IO). Never throws.
      */
     suspend fun performAndLog(context: Context, settings: Settings, origin: FeedbackOrigin, toastText: String? = null) {
         val line = withContext(Dispatchers.Main) { perform(context, settings, origin, toastText) }
@@ -68,8 +68,8 @@ object Feedback {
     }
 
     /**
-     * Feedback completo de uma origem. Chamar na thread principal (Toast). Nunca lança: os erros
-     * vão para a linha de log devolvida.
+     * Full feedback for one origin. Call on the main thread (Toast). Never throws: errors go to
+     * the returned log line.
      */
     fun perform(context: Context, settings: Settings, origin: FeedbackOrigin, toastText: String? = null): String {
         val app = context.applicationContext
@@ -77,7 +77,7 @@ object Feedback {
         val errors = mutableListOf<String>()
         if (settings.vibrate) {
             runCatching { outcome = vibrate(app, settings) }
-                .onFailure { errors += "vibrar: ${it.javaClass.simpleName}: ${it.message}" }
+                .onFailure { errors += "vibrate: ${it.javaClass.simpleName}: ${it.message}" }
         }
         var toastRequested = false
         if (toastText != null && settings.showMessage) {
@@ -95,7 +95,7 @@ object Feedback {
                     toastRequested = toastRequested,
                     errors = errors,
                 )
-        }.getOrElse { "${java.time.OffsetDateTime.now()} origem=${origin.tag} erroNoLog=${it.javaClass.simpleName}" }
+        }.getOrElse { "${java.time.OffsetDateTime.now()} origin=${origin.tag} logError=${it.javaClass.simpleName}" }
     }
 
     fun notificationsEnabled(context: Context): Boolean =
@@ -109,7 +109,7 @@ object Feedback {
             context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
 
-    /** Importância do processo (100 = FOREGROUND); o NMS compara a do uid com IMPORTANCE_FOREGROUND. */
+    /** Process importance (100 = FOREGROUND); the NMS compares the uid's with IMPORTANCE_FOREGROUND. */
     private fun myImportance(): Int =
         ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
 }

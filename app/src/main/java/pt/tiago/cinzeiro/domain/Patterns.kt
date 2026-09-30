@@ -1,13 +1,13 @@
 package pt.tiago.cinzeiro.domain
 
-/** Soma de eventos por hora local (índice = hora 0..23). */
+/** Sum of events per local hour (index = hour 0..23). */
 fun hourlyDistribution(events: List<SmokeEvent>): IntArray {
     val hours = IntArray(24)
     for (e in events) hours[e.localHour()]++
     return hours
 }
 
-/** Grelha dia da semana × hora local; índice 0 = segunda, 6 = domingo. */
+/** Day-of-week × local-hour grid; index 0 = Monday, 6 = Sunday. */
 fun weekdayHourHeatmap(events: List<SmokeEvent>): Array<IntArray> {
     val grid = Array(7) { IntArray(24) }
     for (e in events) {
@@ -17,9 +17,9 @@ fun weekdayHourHeatmap(events: List<SmokeEvent>): Array<IntArray> {
     return grid
 }
 
-/** Média móvel simples; `null` enquanto ainda não há [window] dias. */
+/** Simple moving average; `null` until there are [window] days. */
 fun movingAverage(daily: List<DayCount>, window: Int = 7): List<Double?> {
-    require(window > 0) { "window tem de ser > 0" }
+    require(window > 0) { "window must be > 0" }
     var sum = 0L
     return daily.indices.map { i ->
         sum += daily[i].count
