@@ -148,8 +148,7 @@ A release é assinada com uma keystore própria, **diferente** da debug: o Andro
 release por cima da debug (nem o contrário). Passar de uma para a outra = **desinstalar = perder
 os dados**. Antes: Histórico → Exportar → JSON; depois de instalar: Histórico → Importar JSON.
 
-Versões: debug actual **0.7.0 / 8**. A primeira release será **1.0.0 / versionCode 100** (a mudar
-em `app/build.gradle.kts` no passo 3 do plano R6, não antes).
+Versões: debug **0.7.0 / 8**; primeira release **1.0.0 / versionCode 100**.
 
 ### 1. Criar a keystore (uma vez, pelo Tiago, no terminal)
 
@@ -161,15 +160,32 @@ tools/make-release-keystore.sh
 - Gera `~/.android/smoketracker-release.jks` (PKCS12, alias `smoketracker`, RSA 4096,
   10000 dias, `CN=SmokeTracker`), `chmod 600`. Password aleatória (`openssl rand -base64 32`),
   igual para a store e para a chave.
-- Bitwarden: item **«SmokeTracker — keystore release»** (tipo login, utilizador `smoketracker`,
-  password = a da keystore) com o `.jks` em **anexo** (cópia de segurança).
+- Bitwarden (funciona com conta gratuita — **não usa anexos**, que exigem Premium):
+  - item **«SmokeTracker — keystore release»** (tipo login, utilizador `smoketracker`,
+    password = a da keystore);
+  - **Nota Segura «SmokeTracker — keystore release (ficheiro .jks em base64)»** com o `.jks` em
+    base64 no campo notas (~5,8 KB; o script recusa se passar de 10 000 caracteres, o limite das
+    notas). Depois de a criar, o script lê-a de volta (`bw get notes`) e compara o sha256 com o
+    `.jks`.
 - Acrescenta a `~/.gradle/gradle.properties` (fora do repo, `chmod 600`):
   `SMOKETRACKER_STORE_FILE`, `SMOKETRACKER_STORE_PASSWORD`, `SMOKETRACKER_KEY_ALIAS`,
-  `SMOKETRACKER_KEY_PASSWORD`.
+  `SMOKETRACKER_KEY_PASSWORD`. São escritas logo a seguir ao item de password: se a nota falhar,
+  a keystore já é utilizável e o script diz como guardar o `.jks` à mão
+  (`base64 -w 76 ~/.android/smoketracker-release.jks` → colar numa Nota Segura com esse nome).
 - Recusa correr se o `.jks` já existir, se as propriedades já lá estiverem ou se já houver um item
-  com esse nome no Bitwarden. **Nunca** gerar outra keystore: perdê-la = não poder actualizar a app
-  sem desinstalar. Para repor noutra máquina: descarregar o anexo do item Bitwarden para
-  `~/.android/` e copiar as 4 propriedades.
+  ou nota com esses nomes no Bitwarden. **Nunca** gerar outra keystore: perdê-la = não poder
+  actualizar a app sem desinstalar.
+
+**Restaurar noutra máquina** (ou se o `.jks` se perder):
+
+```bash
+export BW_SESSION="$(bw unlock --raw)"
+bw list items --search "SmokeTracker — keystore release" | jq -r '.[] | "\(.id)  \(.name)"'
+bw get notes <id-da-nota> | base64 -d > ~/.android/smoketracker-release.jks
+chmod 600 ~/.android/smoketracker-release.jks
+```
+
+e copiar as 4 propriedades para `~/.gradle/gradle.properties` (a password está no item login).
 
 ### 2. Compilar a release
 
