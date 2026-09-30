@@ -41,6 +41,10 @@ interface SmokeEventDao {
     @Query("SELECT COUNT(*) FROM smoke_event WHERE at_epoch_ms >= :fromMs AND at_epoch_ms < :toMs")
     suspend fun countBetween(fromMs: Long, toMs: Long): Int
 
+    /** Contagem em `[fromMs, toMs)` que o Room reemite sempre que a tabela muda (widget). */
+    @Query("SELECT COUNT(*) FROM smoke_event WHERE at_epoch_ms >= :fromMs AND at_epoch_ms < :toMs")
+    fun observeCountBetween(fromMs: Long, toMs: Long): Flow<Int>
+
     /** Todos os registos por ordem de instante (exportação). */
     @Query("SELECT * FROM smoke_event ORDER BY at_epoch_ms, id")
     suspend fun all(): List<SmokeEventEntity>
