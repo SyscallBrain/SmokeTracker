@@ -127,6 +127,63 @@ O código vive em `app/src/debug/` (`SyntheticData`, `createDebugTools`); o `src
   - CSV: `id,instant_utc,zone_id,local_datetime`, UTF-8 sem BOM, `\n`.
   - JSON: `{format:"cinzeiro-export", version:1, exported_at, app_version, count, events:[…]}`.
 
+## Importar (R6)
+
+- Histórico → ícone de descarregar → «Importar JSON» (sempre activo, mesmo com a BD vazia).
+  Seletor SAF `OpenDocument` com `application/json`, `text/plain`, `application/octet-stream`
+  (alguns gestores de ficheiros não marcam `.json`). Sem permissões.
+- `domain/export/JsonImporter` (Kotlin puro) valida **o ficheiro inteiro** antes de escrever:
+  `format = cinzeiro-export`, `version = 1`, `count = n.º de eventos`, e cada evento com
+  `instant_utc` ISO-8601 não futuro e `zone_id` IANA conhecido. Qualquer erro → nada é importado;
+  a mensagem indica o primeiro erro e o registo («registo n.º 3: instante no futuro …»).
+- Dedupe por `(at_epoch_ms, zone_id)` ao milissegundo; os `id` do ficheiro são ignorados (a BD
+  atribui novos). Importar o mesmo ficheiro duas vezes não duplica nada.
+- Diálogo «Importar N registos (M já existem e serão ignorados)?»; se N = 0 só aparece a mensagem.
+  A inserção é uma transacção Room (`SmokeEventDao.insertMissing`); `repository.changes` emite
+  **uma** vez no fim → widget actualiza.
+
+## Release (T9)
+
+A release é assinada com uma keystore própria, **diferente** da debug: o Android não instala a
+release por cima da debug (nem o contrário). Passar de uma para a outra = **desinstalar = perder
+os dados**. Antes: Histórico → Exportar → JSON; depois de instalar: Histórico → Importar JSON.
+
+Versões: debug actual **0.7.0 / 8**. A primeira release será **1.0.0 / versionCode 100** (a mudar
+em `app/build.gradle.kts` no passo 3 do plano R6, não antes).
+
+### 1. Criar a keystore (uma vez, pelo Tiago, no terminal)
+
+```bash
+tools/make-release-keystore.sh
+```
+
+- Pede a master password do Bitwarden (`bw unlock`, interactivo). Não imprime a password gerada.
+- Gera `~/.android/smoketracker-release.jks` (PKCS12, alias `smoketracker`, RSA 4096,
+  10000 dias, `CN=SmokeTracker`), `chmod 600`. Password aleatória (`openssl rand -base64 32`),
+  igual para a store e para a chave.
+- Bitwarden: item **«SmokeTracker — keystore release»** (tipo login, utilizador `smoketracker`,
+  password = a da keystore) com o `.jks` em **anexo** (cópia de segurança).
+- Acrescenta a `~/.gradle/gradle.properties` (fora do repo, `chmod 600`):
+  `SMOKETRACKER_STORE_FILE`, `SMOKETRACKER_STORE_PASSWORD`, `SMOKETRACKER_KEY_ALIAS`,
+  `SMOKETRACKER_KEY_PASSWORD`.
+- Recusa correr se o `.jks` já existir, se as propriedades já lá estiverem ou se já houver um item
+  com esse nome no Bitwarden. **Nunca** gerar outra keystore: perdê-la = não poder actualizar a app
+  sem desinstalar. Para repor noutra máquina: descarregar o anexo do item Bitwarden para
+  `~/.android/` e copiar as 4 propriedades.
+
+### 2. Compilar a release
+
+```bash
+export JAVA_HOME=/opt/android-studio/jbr ANDROID_HOME=/opt/android-sdk
+./gradlew assembleRelease --console=plain > build.log 2>&1; echo EXIT=$?
+/opt/android-sdk/build-tools/37.0.0/apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
+```
+
+O certificado tem de ser `CN=SmokeTracker` (não `CN=Android Debug`). Sem as 4 propriedades a
+tarefa `checkReleaseSigning` falha com «Assinatura release não configurada: faltam as
+propriedades Gradle …» — **nunca** se cai para a chave debug. `assembleDebug` e os testes não
+dependem destas propriedades.
+
 ## Widget (T8)
 
 - Glance 2×1: contagem de hoje, «último HH:MM» (hora absoluta), botão «+1».
