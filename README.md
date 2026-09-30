@@ -1,215 +1,338 @@
-# SmokeTracker
+<p align="center">
+  <img src="docs/icon.svg" width="128" height="128" alt="SmokeTracker app icon">
+</p>
 
-App Android pessoal (nome visível «SmokeTracker»; `applicationId`, pacotes Kotlin, directório
-do projecto e o id de formato `cinzeiro-export` mantêm `cinzeiro` — invisíveis, mudá-los
-perderia os registos instalados) para registar cigarros com um toque e ver estatísticas.
-Dados só no telemóvel (sem permissão `INTERNET`).
+<h1 align="center">SmokeTracker</h1>
 
-Plano e ADR vivem fora deste repositório (workspace do architect).
+<p align="center">
+  <b>Log a cigarette with one tap. See your patterns. Nothing leaves your phone.</b>
+</p>
 
-## Compilar
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-7aa2f7" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/Android-minSdk%2026%20%C2%B7%20targetSdk%2036-9ece6a?logo=android&logoColor=white" alt="Android minSdk 26, targetSdk 36">
+  <img src="https://img.shields.io/badge/Kotlin-2.4.20-bb9af7?logo=kotlin&logoColor=white" alt="Kotlin 2.4.20">
+  <img src="https://img.shields.io/badge/Jetpack%20Compose-Material%203-7dcfff?logo=jetpackcompose&logoColor=white" alt="Jetpack Compose, Material 3">
+  <a href="https://github.com/SyscallBrain/SmokeTracker/releases/latest"><img src="https://img.shields.io/github/v/release/SyscallBrain/SmokeTracker?color=ff9e64" alt="Latest release"></a>
+</p>
 
-```bash
-export JAVA_HOME=/opt/android-studio/jbr ANDROID_HOME=/opt/android-sdk
-./gradlew assembleDebug --console=plain > build.log 2>&1; echo EXIT=$?
-./gradlew testDebugUnitTest --console=plain > build.log 2>&1; echo EXIT=$?
-./gradlew --stop
-```
+SmokeTracker is a small, offline Android app for counting cigarettes. Tap **+1** — in the app or
+on a home-screen widget — and it shows how many today, how long since the last one, and where
+your habit clusters by hour and weekday.
 
-`local.properties` (fora do git): `sdk.dir=/opt/android-sdk`.
+> The app's user interface is in **European Portuguese**. This README is in English; there is a
+> short [Portuguese section](#em-português) at the end.
 
-## Toolchain (versões finais, verificadas no T0 em 2026-09-29)
+## Why
 
-| Peça | Versão |
+- **One tap, no friction.** Logging has to be faster than thinking about it, or it doesn't happen.
+  The widget logs without opening the app and without a confirmation dialog.
+- **No goals, no judgement.** No targets, streaks, badges or "you failed" messages. It's a mirror,
+  not a coach: numbers and charts, nothing else.
+- **Your data is yours.** No account, no cloud, no network permission. Export everything to
+  CSV/JSON whenever you like, and import it back.
+
+## Features
+
+**Today**
+- Large count for today, "last one … ago" (refreshed every minute) and a big **+1** button with
+  haptic feedback.
+- Snackbar "Registado às HH:MM · Desfazer" for 5 s — *undo* deletes exactly the event just added.
+- Cards: 7-day average per day (up to yesterday, with % change vs. the previous 7 days) and
+  average interval between cigarettes today.
+- Today's cigarettes by hour (bar chart).
+
+**Statistics** — periods of **7 days · 30 days · 90 days · 1 year**
+- Cards: total, average per day (with % change vs. the previous period), worst day, and average
+  interval (within the same day).
+- Daily bars with a 7-day moving average (7/30 days) or weekly bars (90 days / 1 year).
+- Distribution by hour of day (0–23).
+- **Heatmap hour × weekday** (Monday first).
+
+**History**
+- Events grouped by local day, loaded 30 days at a time.
+- Swipe to delete, with *undo* (restores the same instant and time zone).
+- Add a forgotten cigarette with a Material 3 date picker + 24 h time picker; future times are
+  blocked.
+- **Export** all events to **CSV** or **JSON** through the system file picker (you choose where
+  the file goes: Downloads, a cloud-drive app, …). Suggested name `smoketracker-YYYY-MM-DD.csv|json`.
+- **Import JSON** (a previous export). The whole file is validated first — **all or nothing** —
+  with a readable error pointing at the offending record ("registo n.º 3: instante no futuro …").
+  Duplicates (same instant to the millisecond and same time zone) are skipped, so importing the
+  same file twice adds nothing. A dialog shows how many events are new and how many already
+  exist before anything is written.
+
+**Home-screen widget** (2×1)
+- Today's count, "último HH:MM" (absolute time — a widget can't refresh every minute) and a
+  **+1** button.
+- Refreshes on every change (from the app, the widget or an import) and at local midnight.
+- Optional vibration and an optional toast "Registado às HH:MM · N hoje".
+
+**Settings**
+- Vibrate on log (on/off) and vibration type (short / double / strong) with a *test* button.
+- Show the message when logging from the widget (on/off).
+- Notification status with a shortcut to allow them (Android 13+ needs it for the widget toast to
+  appear while the app is in the background).
+
+**Look & feel**
+- Always dark, **Tokyo Night** palette, Material 3, no dynamic colour.
+
+**Time zones done right**
+- Every event stores the UTC instant *and* the IANA time zone where it was logged. A "day" is the
+  local calendar day of that zone, so clock changes and travel don't scramble your history — e.g.
+  the two distinct 01:30s on 25 Oct 2026 in Lisbon are kept, in the right order.
+
+## Privacy
+
+SmokeTracker has **no `INTERNET` permission**: it cannot send your data anywhere, by
+construction. No account, no analytics, no ads, no crash reporter, no third-party SDK that phones
+home.
+
+- Events are stored only in a local **Room (SQLite)** database in the app's private storage.
+- Settings live in a local **DataStore** file.
+- Export/import use the Storage Access Framework, so the app needs **no storage permission**: it
+  only touches the file you pick.
+
+Complete permission list of the 1.0.0 release APK (`aapt2 dump badging`):
+
+| Permission | Why |
 |---|---|
-| JDK do Gradle | JetBrains Runtime 21.0.10 (`/opt/android-studio/jbr`) — o OpenJDK 25-ea do sistema não é usado |
-| Gradle wrapper | 9.8.0 (AGP 9.4 exige ≥ 9.6.0) |
-| AGP | 9.4.1 (Kotlin integrado: **não** se aplica `org.jetbrains.kotlin.android`) |
-| Kotlin (plugins compose/serialization) | 2.4.20 |
+| `VIBRATE` | Haptic confirmation when you tap **+1** on the widget. |
+| `POST_NOTIFICATIONS` | Android 13+ hides toasts from background apps without it; used only for the widget's "Registado às …" message. Requested from Settings; optional. |
+| `WAKE_LOCK` | Merged from **WorkManager** (used for the widget's midnight refresh). |
+| `ACCESS_NETWORK_STATE` | Merged from **WorkManager** (supports network constraints, which this app doesn't use). It only reads connectivity state — it does **not** grant network access. |
+| `RECEIVE_BOOT_COMPLETED` | Merged from **WorkManager** so the scheduled midnight refresh survives a reboot. |
+| `FOREGROUND_SERVICE` | Merged from **WorkManager**; not used by the app's own code. |
+| `pt.tiago.cinzeiro.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | Internal signature-level permission generated by AndroidX Core for non-exported runtime receivers. Other apps can't hold it. |
+
+All are *normal* permissions granted at install, except `POST_NOTIFICATIONS`, which you may leave
+off.
+
+> **Device backups:** the manifest doesn't set `android:allowBackup`, so if you use Android's own
+> device backup, the system may include the app's data in it. The app itself never uploads
+> anything.
+
+## Install
+
+SmokeTracker is **not on Google Play**. Download the signed APK from the
+[latest GitHub Release](https://github.com/SyscallBrain/SmokeTracker/releases/latest) and
+sideload it (allow "install unknown apps" for your browser or file manager).
+
+Verify the download before installing:
+
+```bash
+sha256sum smoketracker-1.0.0.apk                  # compare with the hash in the release notes
+apksigner verify --print-certs smoketracker-1.0.0.apk
+```
+
+The release signing certificate is:
+
+```
+Signer #1 certificate DN: CN=SmokeTracker
+Signer #1 certificate SHA-256 digest: 5d904c7fd637f52f6841ed5d3e15ebc62b1127ed9e13cf7f6b20c8bd978f3265
+```
+
+Future releases will be signed with the same key; Android refuses an update signed with a
+different one.
+
+> Switching between a self-built debug APK and the release APK requires uninstalling (different
+> signatures), which deletes the app's data. **Export to JSON first**, then import it after
+> reinstalling.
+
+## Data format
+
+Both formats contain **all** events, ordered by instant. `local_datetime` is redundant (derived
+from `instant_utc` + `zone_id`) and is there for spreadsheets; the importer ignores it and the
+`id` values.
+
+**CSV** — RFC 4180, UTF-8 without BOM, `,` separator, `\n` line endings:
+
+```csv
+id,instant_utc,zone_id,local_datetime
+1,2026-09-29T12:32:05Z,Europe/Lisbon,2026-09-29T13:32:05
+```
+
+**JSON** — versioned; this is what the importer reads:
+
+```json
+{
+  "format": "cinzeiro-export",
+  "version": 1,
+  "exported_at": "2026-09-29T13:40:00Z",
+  "app_version": "1.0.0",
+  "count": 1,
+  "events": [
+    {"id": 1, "instant_utc": "2026-09-29T12:32:05Z", "zone_id": "Europe/Lisbon", "local_datetime": "2026-09-29T13:32:05"}
+  ]
+}
+```
+
+Import rules: `format` must be `cinzeiro-export`, `version` must be `1`, `count` must equal the
+number of events, every `instant_utc` must be ISO-8601 and not in the future, and every `zone_id`
+must be a known IANA zone. Unknown keys are ignored. Any error → nothing is imported.
+
+A synthetic 13-event example: [`app/src/test/resources/sample-export-v1.json`](app/src/test/resources/sample-export-v1.json).
+
+## Build from source
+
+Requirements: **JDK 21** (e.g. the JetBrains Runtime bundled with Android Studio) and the
+**Android SDK** with platform `android-37.2` and build-tools 37.
+
+```bash
+export JAVA_HOME=/path/to/jdk-21
+export ANDROID_HOME=/path/to/android-sdk     # or sdk.dir=… in local.properties (git-ignored)
+
+./gradlew assembleDebug          # → app/build/outputs/apk/debug/app-debug.apk
+./gradlew testDebugUnitTest      # JVM + Robolectric unit tests, no device needed
+./gradlew lintDebug
+```
+
+The debug build has a hidden developer menu (long-press the date on the Today screen) to generate
+90 days of synthetic data or wipe everything. It is compiled into the debug variant only.
+
+### Release build
+
+The release is signed with its own key, never the debug key. The signing values come from four
+Gradle properties kept **outside** the repository (e.g. in `~/.gradle/gradle.properties`):
+
+```properties
+SMOKETRACKER_STORE_FILE=/path/to/release.jks
+SMOKETRACKER_STORE_PASSWORD=…
+SMOKETRACKER_KEY_ALIAS=…
+SMOKETRACKER_KEY_PASSWORD=…
+```
+
+```bash
+./gradlew assembleRelease        # → app/build/outputs/apk/release/app-release.apk
+```
+
+If any property is missing, the `checkReleaseSigning` task fails with a clear message instead of
+producing an unsigned or debug-signed APK. Debug builds and tests don't need these properties.
+
+[`tools/make-release-keystore.sh`](tools/make-release-keystore.sh) is a one-off helper that
+generates a PKCS12 keystore (RSA 4096, `CN=SmokeTracker`) with a random password, backs up the
+password and the `.jks` to a Bitwarden vault (`bw` CLI; works with free accounts) and appends the
+four properties to `~/.gradle/gradle.properties`. It refuses to run if a keystore already exists.
+You can just as well create a keystore with `keytool` and set the properties yourself — a fork
+must use its **own** key.
+
+## Tech stack
+
+| Piece | Version |
+|---|---|
+| Kotlin (Compose + serialization compiler plugins) | 2.4.20 |
+| Android Gradle Plugin (built-in Kotlin support) | 9.4.1 |
+| Gradle wrapper | 9.8.0 |
 | KSP | 2.3.12 |
-| kotlinx-serialization-json | 1.11.0 |
-| Compose BOM | 2026.09.00 (exige compileSdk ≥ 37) |
-| Room | 2.8.5 |
-| Glance appwidget | 1.2.0 |
-| Vico compose-m3 | 3.3.1 |
+| Jetpack Compose BOM — Material 3, material-icons-extended | 2026.09.00 |
+| Activity Compose | 1.13.0 |
+| Navigation Compose (type-safe routes) | 2.10.2 |
+| Lifecycle (runtime / ViewModel Compose) | 2.11.0 |
+| Room (schema exported to `app/schemas/`) | 2.8.5 |
+| DataStore Preferences | 1.2.1 |
 | WorkManager | 2.12.0 |
-| Navigation Compose | 2.10.2 |
-| Lifecycle | 2.11.0 |
-| activity-compose | 1.13.0 |
+| Vico charts (`compose-m3`) | 3.3.1 |
+| kotlinx-serialization-json | 1.11.0 |
 | core-ktx | 1.19.1 |
-| JUnit | 4.13.2 |
-| Robolectric (testes do Room na JVM) | 4.17 (SDK 36) |
-| androidx.test core | 1.7.0 |
-| kotlinx-coroutines-test | 1.11.0 |
+| Tests: JUnit · Robolectric · androidx.test core · kotlinx-coroutines-test | 4.13.2 · 4.17 · 1.7.0 · 1.11.0 |
 
-SDK: `compileSdk = release(37) { minorApiLevel = 2 }`, `targetSdk = 36`, `minSdk = 26`.
-Telemóvel alvo: Android 16 (API 36).
+`compileSdk` 37.2 · `targetSdk` 36 · `minSdk` 26 (Android 8.0) · JVM target 17.
+No DI framework — a small hand-written `AppContainer`.
 
-## Pendente: instalar no telemóvel (T0 passo 6)
+## Architecture
 
-O APK debug do T0 foi enviado com `apk-to-phone` para
-`/storage/emulated/0/Download/cinzeiro-0.1.0-t0-debug.apk`
-(sha256 `403de81dd28854605bfc67776004b4466d8b572a6d65ccbff9a1aab13e4f122b`).
-Falta o Tiago instalá-lo e confirmar que abre com fundo escuro. Não há adb neste
-host, logo `adb shell getprop ro.build.version.sdk` não foi corrido (Android 16 é
-o valor declarado pelo Tiago).
+A single Gradle module (`:app`), layered by package:
 
-## Estatísticas (`domain/`)
-
-Kotlin puro (`java.time`, sem `android.*`), testado na JVM com `./gradlew testDebugUnitTest`.
-
-- O dia termina à meia-noite local da zona de cada registo.
-- `summary(..., endInclusive = hoje)` conta hoje como **dia inteiro** no `perDay` mesmo que
-  ainda esteja a decorrer (simplicidade > precisão ao décimo). O cartão «média 7 dias» do ecrã
-  Hoje usa `endInclusive = ontem` para não ser puxado para baixo pelo dia parcial.
-- `perDay` divide por `min(N, dias desde o primeiro registo + 1)`.
-- `deltaPct` é `null` se o período anterior começar antes do primeiro registo ou tiver média 0.
-
-Desempenho medido (teste `SummaryTest`, 2026-09-29, JVM do host = JBR 21, não telemóvel):
-`summary` sobre **3 anos × 40 cigarros/dia = 43 840 eventos**, média de 10 execuções após
-aquecimento: D7 4,29 ms · D30 1,92 ms · D90 2,29 ms · 1 a 2,63 ms. Gatilho do ADR é >100 ms
-**no telemóvel** — ainda não medido lá.
-
-## Dados (`data/`)
-
-- Room, tabela `smoke_event(id, at_epoch_ms, zone_id)` com índice em `at_epoch_ms` (ADR §3).
-  Esquema exportado em `app/schemas/pt.tiago.cinzeiro.data.AppDatabase/1.json` — **versionado**,
-  é a base das futuras migrações.
-- Intervalos das consultas (`observeBetween`, `countBetween`): `[from, to)` — início inclusivo,
-  fim exclusivo.
-- `SmokeRepository(dao, clock)`: `logNow()` usa `clock.instant()`/`clock.zone`; `logAt()` rejeita
-  instantes no futuro (`IllegalArgumentException`); `delete(id)` apaga **esse** id.
-  `changes: SharedFlow<Change>` emite após cada inserção/remoção (gancho para o widget do T8).
-- Relógio em produção: `SystemZoneClock` (zona lida em cada chamada — muda com o fuso do telemóvel).
-- Testes do DAO/repositório: Robolectric 4.17 com BD Room em memória
-  (`app/src/test/.../data/SmokeRepositoryTest.kt`). Precisa de
-  `--add-exports java.base/jdk.internal.access=ALL-UNNAMED` na JVM dos testes (já no
-  `app/build.gradle.kts`); sem isso o SDK 36 do Robolectric falha em `ApplicationSharedMemory`.
-
-### Seed de debug (só no APK debug)
-
-**Como abrir:** no ecrã Hoje, **pressão longa na data** (ex.: «ter, 29 set») → diálogo «Debug» com
-«Gerar dados de teste», «Apagar tudo» e «Sistema de design» (catálogo de cores/componentes do T1).
-No release a data não reage à pressão longa.
-
-
-O código vive em `app/src/debug/` (`SyntheticData`, `createDebugTools`); o `src/release/` devolve
-`null`, por isso o release não contém nada disto. Gera 90 dias (8–18/dia, picos às 8 h, 13 h e
-21 h, semente fixa) e **substitui todos os registos**.
-
-## Ecrã Hoje (T4)
-
-- Data · contagem grande (tnum, animada) · «último há …» (actualiza ao minuto) · botão +1 (128 dp,
-  vibração `LongPress`) · cartões «média 7 dias» (`summary(D7, endInclusive = ontem)`, com variação)
-  e «intervalo hoje» · barras por hora (Vico 3.3.1, hora actual em `primary`).
-- Snackbar «Registado às HH:MM · Desfazer» durante 5 s; «Desfazer» apaga **o id inserido**.
-- Navegação inferior: Hoje · Estatísticas · Histórico.
-- Vico: API confirmada nas fontes `compose-android-3.3.1-sources.jar` (`columnModel`,
-  `ColumnCartesianLayer.ColumnProvider`, `CartesianLayerRangeProvider.fixed`); `columnSeries` está
-  deprecado na 3.3.1.
-
-## Estatísticas (T5/T6)
-
-- Período 7 d · 30 d · 90 d · 1 a; cartões total, média/dia, dias sem fumar, máximo; barras diárias
-  (7/30 d) ou semanais (90 d/1 a) com média móvel de 7 d (Vico 3.3.1, `columnModel`).
-- «Por hora do dia» (barras 0–23) e heatmap hora × dia da semana (Canvas, segunda = linha 0, `S T Q Q S S D`).
-
-## Histórico (T7)
-
-- Lista por dia local, páginas de 30 dias; deslizar para a esquerda apaga, snackbar «Desfazer»
-  repõe o mesmo instante e zona (id novo). «Adicionar»: DatePicker + TimePicker M3 24 h; futuro
-  bloqueado na UI e no repositório.
-
-## Exportar (T10)
-
-- Histórico → ícone de descarregar → CSV ou JSON; ficheiro escolhido pelo SAF (`CreateDocument`),
-  sem permissões; nome sugerido `smoketracker-AAAA-MM-DD.csv|json`. Formatos em `domain/export/` (ADR §Decisão 10):
-  - CSV: `id,instant_utc,zone_id,local_datetime`, UTF-8 sem BOM, `\n`.
-  - JSON: `{format:"cinzeiro-export", version:1, exported_at, app_version, count, events:[…]}`.
-
-## Importar (R6)
-
-- Histórico → ícone de descarregar → «Importar JSON» (sempre activo, mesmo com a BD vazia).
-  Seletor SAF `OpenDocument` com `application/json`, `text/plain`, `application/octet-stream`
-  (alguns gestores de ficheiros não marcam `.json`). Sem permissões.
-- `domain/export/JsonImporter` (Kotlin puro) valida **o ficheiro inteiro** antes de escrever:
-  `format = cinzeiro-export`, `version = 1`, `count = n.º de eventos`, e cada evento com
-  `instant_utc` ISO-8601 não futuro e `zone_id` IANA conhecido. Qualquer erro → nada é importado;
-  a mensagem indica o primeiro erro e o registo («registo n.º 3: instante no futuro …»).
-- Dedupe por `(at_epoch_ms, zone_id)` ao milissegundo; os `id` do ficheiro são ignorados (a BD
-  atribui novos). Importar o mesmo ficheiro duas vezes não duplica nada.
-- Diálogo «Importar N registos (M já existem e serão ignorados)?»; se N = 0 só aparece a mensagem.
-  A inserção é uma transacção Room (`SmokeEventDao.insertMissing`); `repository.changes` emite
-  **uma** vez no fim → widget actualiza.
-
-## Release (T9)
-
-A release é assinada com uma keystore própria, **diferente** da debug: o Android não instala a
-release por cima da debug (nem o contrário). Passar de uma para a outra = **desinstalar = perder
-os dados**. Antes: Histórico → Exportar → JSON; depois de instalar: Histórico → Importar JSON.
-
-Versões: debug **0.7.0 / 8**; primeira release **1.0.0 / versionCode 100**.
-
-### 1. Criar a keystore (uma vez, pelo Tiago, no terminal)
-
-```bash
-tools/make-release-keystore.sh
+```mermaid
+flowchart LR
+    UI["ui/* — Compose screens"] --> VM["ViewModels (StateFlow)"]
+    VM --> R["data/SmokeRepository"]
+    VM --> D["domain/ — pure Kotlin:<br/>stats, patterns, export/import"]
+    W["widget/ — AppWidgetProvider<br/>+ RemoteViews"] --> R
+    R --> DAO["Room DAO"] --> DB[("SQLite<br/>smoke_event")]
+    R -. "changes (SharedFlow)" .-> W
 ```
 
-- Pede a master password do Bitwarden (`bw unlock`, interactivo). Não imprime a password gerada.
-- Gera `~/.android/smoketracker-release.jks` (PKCS12, alias `smoketracker`, RSA 4096,
-  10000 dias, `CN=SmokeTracker`), `chmod 600`. Password aleatória (`openssl rand -base64 32`),
-  igual para a store e para a chave.
-- Bitwarden (funciona com conta gratuita — **não usa anexos**, que exigem Premium):
-  - item **«SmokeTracker — keystore release»** (tipo login, utilizador `smoketracker`,
-    password = a da keystore);
-  - **Nota Segura «SmokeTracker — keystore release (ficheiro .jks em base64)»** com o `.jks` em
-    base64 no campo notas (~5,8 KB; o script recusa se passar de 10 000 caracteres, o limite das
-    notas). Depois de a criar, o script lê-a de volta (`bw get notes`) e compara o sha256 com o
-    `.jks`.
-- Acrescenta a `~/.gradle/gradle.properties` (fora do repo, `chmod 600`):
-  `SMOKETRACKER_STORE_FILE`, `SMOKETRACKER_STORE_PASSWORD`, `SMOKETRACKER_KEY_ALIAS`,
-  `SMOKETRACKER_KEY_PASSWORD`. São escritas logo a seguir ao item de password: se a nota falhar,
-  a keystore já é utilizável e o script diz como guardar o `.jks` à mão
-  (`base64 -w 76 ~/.android/smoketracker-release.jks` → colar numa Nota Segura com esse nome).
-- Recusa correr se o `.jks` já existir, se as propriedades já lá estiverem ou se já houver um item
-  ou nota com esses nomes no Bitwarden. **Nunca** gerar outra keystore: perdê-la = não poder
-  actualizar a app sem desinstalar.
+- **`domain/`** is plain Kotlin on `java.time` with **no `android.*` imports**: counts, summaries
+  (per-day average, deltas, worst day, intervals), hour/weekday patterns, the CSV/JSON exporters
+  and the JSON importer. Statistics are computed in memory from the events of the requested range,
+  not with SQL aggregates, and are unit-tested on the JVM.
+- **`data/`** — Room entity and DAO, `SmokeRepository` (log now, log in the past, delete, import
+  with dedupe in a single transaction) and a zone-aware system clock. One table:
+  `smoke_event(id, at_epoch_ms, zone_id)` with an index on `at_epoch_ms`.
+- **`ui/`** — Today, Statistics, History and Settings; each screen has a ViewModel exposing a
+  `StateFlow`.
+- **`widget/`** — a classic `AppWidgetProvider` with `RemoteViews`. Jetpack Glance was used first
+  and dropped because on a real device it kept showing stale counts after the app had pushed new
+  values.
+- **`settings/`**, **`feedback/`** — DataStore-backed preferences; vibration and toast feedback.
 
-**Restaurar noutra máquina** (ou se o `.jks` se perder):
+## Project structure
 
-```bash
-export BW_SESSION="$(bw unlock --raw)"
-bw list items --search "SmokeTracker — keystore release" | jq -r '.[] | "\(.id)  \(.name)"'
-bw get notes <id-da-nota> | base64 -d > ~/.android/smoketracker-release.jks
-chmod 600 ~/.android/smoketracker-release.jks
+```
+app/src/main/java/pt/tiago/cinzeiro/
+├── App.kt, MainActivity.kt, CrashLog.kt   # CrashLog only acts in debug builds
+├── data/          # Room database, DAO, entity, SmokeRepository, clock
+├── di/            # AppContainer (manual dependency wiring)
+├── domain/        # pure Kotlin: Counts, Summary, Patterns, SmokeEvent
+│   └── export/    # CsvExporter, JsonExporter, JsonImporter, models
+├── feedback/      # vibration + widget toast
+├── settings/      # Settings model, DataStore repository, vibration patterns
+├── ui/            # today/, stats/, history/, settings/, nav/, components/, theme/, format/
+└── widget/        # receiver, RemoteViews builder, state, midnight refresh (WorkManager)
+app/src/debug/     # developer menu + synthetic data generator (debug APK only)
+app/src/release/   # no-op stand-in for the debug tools
+app/src/test/      # JVM + Robolectric unit tests, synthetic JSON fixture
+app/schemas/       # exported Room schema (base for future migrations)
+docs/icon.svg      # app icon, drawn from the adaptive-icon vector drawable
+tools/             # make-release-keystore.sh
 ```
 
-e copiar as 4 propriedades para `~/.gradle/gradle.properties` (a password está no item login).
+The package name `pt.tiago.cinzeiro` is the project's original working name (*cinzeiro* is
+Portuguese for "ashtray"); changing an `applicationId` turns it into a different app for existing
+installs, so it stays. The JSON format id `cinzeiro-export` stays for the same reason.
 
-### 2. Compilar a release
+## Testing
 
-```bash
-export JAVA_HOME=/opt/android-studio/jbr ANDROID_HOME=/opt/android-sdk
-./gradlew assembleRelease --console=plain > build.log 2>&1; echo EXIT=$?
-/opt/android-sdk/build-tools/37.0.0/apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
-```
+`./gradlew testDebugUnitTest` runs **143 unit tests** on the JVM — no emulator or device: 120 plain
+JUnit tests (domain logic, ViewModels, exporters/importer, formatting, settings, widget state) and
+23 Robolectric tests (Room repository, widget receiver, crash-log files). Time-sensitive tests use
+fixed clocks, including the 25 Oct 2026 clock change in Lisbon. The UI is tested by hand on a real
+phone.
 
-O certificado tem de ser `CN=SmokeTracker` (não `CN=Android Debug`). Sem as 4 propriedades a
-tarefa `checkReleaseSigning` falha com «Assinatura release não configurada: faltam as
-propriedades Gradle …» — **nunca** se cai para a chave debug. `assembleDebug` e os testes não
-dependem destas propriedades.
+## Roadmap and non-goals
 
-## Widget (T8)
+There is no fixed roadmap; small quality-of-life improvements may come.
 
-- Glance 2×1: contagem de hoje, «último HH:MM» (hora absoluta), botão «+1».
-- Os dados são lidos **dentro** da composição (`widgetStateFlow`: Flows do Room
-  `observeCountBetween` + `observeLast`, com `collectAsState`), porque o Glance mantém a sessão viva
-  e `update()/updateAll()` recompõe sem voltar a chamar `provideGlance` (bug R2.2). O dia é
-  recalculado a cada meia-noite local no próprio Flow; `updateAll` continua após o +1, em `changes`
-  (em `App`) e à meia-noite (WorkManager) para acordar/recriar a sessão.
-- +1 do widget: vibração curta (`EFFECT_CLICK`, `USAGE_HARDWARE_FEEDBACK` — o uso `TOUCH` é
-  ignorado com a app em segundo plano) e Toast «Registado às HH:MM · N hoje». Permissão `VIBRATE`.
-- Permissões novas no APK vêm do `work-runtime` (WAKE_LOCK, ACCESS_NETWORK_STATE,
-  RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE) — todas «normal», concedidas na instalação.
+Deliberate **non-goals**:
+- Goals, limits, streaks, gamification or motivational messages.
+- Accounts, cloud sync or any network access.
+- Tracking brands, prices, triggers or notes.
 
+## Contributing
+
+Issues and pull requests are welcome. Keep changes small and focused, run
+`./gradlew testDebugUnitTest lintDebug` before submitting, keep `domain/` free of Android
+dependencies, and don't add the `INTERNET` permission or any tracking library. UI strings are in
+European Portuguese.
+
+## License
+
+[MIT](LICENSE) © 2026 SyscallBrain
+
+---
+
+## Em português
+
+**SmokeTracker** é uma app Android para registar cigarros com um toque (na app ou no widget) e ver
+estatísticas: contagem de hoje, médias de 7/30/90 dias e 1 ano, distribuição por hora e mapa de
+calor hora × dia da semana. Sem metas nem julgamentos. A interface está em português de Portugal.
+
+Os dados ficam **só no telemóvel** (base de dados local): a app **não tem permissão `INTERNET`**,
+nem contas, publicidade ou analytics. Pode exportar tudo para CSV ou JSON e voltar a importar o
+JSON (validação completa, sem duplicados).
+
+Instalação: descarregar o APK assinado da
+[última release](https://github.com/SyscallBrain/SmokeTracker/releases/latest) (não está na Play
+Store) e confirmar o SHA-256 do ficheiro e o do certificado
+(`5d904c7fd637f52f6841ed5d3e15ebc62b1127ed9e13cf7f6b20c8bd978f3265`). Licença MIT.

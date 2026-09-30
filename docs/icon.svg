@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 108 108">
+  <!-- Rendered from app/src/main/res/drawable/ic_launcher_foreground.xml on the adaptive-icon background #1A1B26. -->
+  <rect width="108" height="108" rx="24" fill="#1A1B26"/>
+  <g transform="rotate(-35 54 54)">
+    <path fill="#ff9e64" fill-opacity="0.55" d="M29.5,48h9a2.5,2.5 0,0 1,2.5,2.5v7a2.5,2.5 0,0 1,-2.5,2.5h-9a2.5,2.5 0,0 1,-2.5,-2.5v-7a2.5,2.5 0,0 1,2.5,-2.5z"/>
+    <path fill="#c0caf5" d="M42.5,48h31a1.5,1.5 0,0 1,1.5,1.5v9a1.5,1.5 0,0 1,-1.5,1.5h-31a1.5,1.5 0,0 1,-1.5,-1.5v-9a1.5,1.5 0,0 1,1.5,-1.5z"/>
+    <path fill="#ff9e64" d="M77,48h3a2,2 0,0 1,2,2v8a2,2 0,0 1,-2,2h-3a2,2 0,0 1,-2,-2v-8a2,2 0,0 1,2,-2z"/>
+  </g>
+  <path stroke="#7aa2f7" stroke-opacity="0.85" stroke-width="3" stroke-linecap="round" fill="none" d="M73,38C70,33 77,30 74,25S77,18 75,14"/>
+  <path fill="#7aa2f7" d="M36,72h2a2,2 0,0 1,2,2v4a2,2 0,0 1,-2,2h-2a2,2 0,0 1,-2,-2v-4a2,2 0,0 1,2,-2z"/>
+  <path fill="#7aa2f7" d="M45,67h2a2,2 0,0 1,2,2v9a2,2 0,0 1,-2,2h-2a2,2 0,0 1,-2,-2v-9a2,2 0,0 1,2,-2z"/>
+  <path fill="#7aa2f7" d="M54,70h2a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-2a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z"/>
+  <path fill="#ff9e64" d="M63,64h2a2,2 0,0 1,2,2v12a2,2 0,0 1,-2,2h-2a2,2 0,0 1,-2,-2v-12a2,2 0,0 1,2,-2z"/>
+</svg>
