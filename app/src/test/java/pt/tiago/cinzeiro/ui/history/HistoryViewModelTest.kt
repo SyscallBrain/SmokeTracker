@@ -173,7 +173,7 @@ class HistoryViewModelTest {
 
     // --- Importação (R6) ---
 
-    private fun fixtureStream() = javaClass.classLoader!!.getResourceAsStream("smoketracker-export-2026-09-30.json")!!
+    private fun fixtureStream() = javaClass.classLoader!!.getResourceAsStream("sample-export-v1.json")!!
 
     private fun TestScope.importVm(): Pair<HistoryViewModel, MutableList<HistoryEvent>> {
         val vm = HistoryViewModel(repo, appVersion = "0.7.0", io = dispatcher)
@@ -186,8 +186,8 @@ class HistoryViewModelTest {
 
     @Test
     fun `importar - preparar mostra N novos e M existentes, confirmar insere e avisa`() = runTest(dispatcher) {
-        // Relógio do teste é 29-09 12:32Z; a fixture vai até 30-09 → usar um repo com relógio posterior.
-        repo = SmokeRepository(FakeSmokeEventDao(), Clock.fixed(Instant.parse("2026-09-30T12:00:00Z"), zone))
+        // Relógio do teste é 29-09 12:32Z; a fixture vai até 25-10 → usar um repo com relógio posterior.
+        repo = SmokeRepository(FakeSmokeEventDao(), Clock.fixed(Instant.parse("2026-10-26T12:00:00Z"), zone))
         val (vm, events) = importVm()
         vm.prepareImport { fixtureStream() }
         runCurrent()
@@ -211,7 +211,7 @@ class HistoryViewModelTest {
 
     @Test
     fun `importar - apagar 2 e importar mostra 2 novos e 11 existentes`() = runTest(dispatcher) {
-        repo = SmokeRepository(FakeSmokeEventDao(), Clock.fixed(Instant.parse("2026-09-30T12:00:00Z"), zone))
+        repo = SmokeRepository(FakeSmokeEventDao(), Clock.fixed(Instant.parse("2026-10-26T12:00:00Z"), zone))
         val (vm, events) = importVm()
         vm.prepareImport { fixtureStream() }
         runCurrent()
@@ -231,7 +231,7 @@ class HistoryViewModelTest {
 
     @Test
     fun `importar - cancelar nao escreve nada`() = runTest(dispatcher) {
-        repo = SmokeRepository(FakeSmokeEventDao(), Clock.fixed(Instant.parse("2026-09-30T12:00:00Z"), zone))
+        repo = SmokeRepository(FakeSmokeEventDao(), Clock.fixed(Instant.parse("2026-10-26T12:00:00Z"), zone))
         val (vm, _) = importVm()
         vm.prepareImport { fixtureStream() }
         runCurrent()

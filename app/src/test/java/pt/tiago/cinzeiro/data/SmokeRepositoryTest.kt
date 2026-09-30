@@ -157,15 +157,15 @@ class SmokeRepositoryTest {
     // --- Importação (R6) ---
 
     private fun fixtureEvents(): List<pt.tiago.cinzeiro.domain.SmokeEvent> {
-        val text = javaClass.classLoader!!.getResource("smoketracker-export-2026-09-30.json")!!.readText()
-        val r = pt.tiago.cinzeiro.domain.export.JsonImporter.read(text, Instant.parse("2026-09-30T12:00:00Z"))
+        val text = javaClass.classLoader!!.getResource("sample-export-v1.json")!!.readText()
+        val r = pt.tiago.cinzeiro.domain.export.JsonImporter.read(text, Instant.parse("2026-10-26T12:00:00Z"))
         assertTrue(r.errors.toString(), r.ok)
         return r.events
     }
 
     @Test
-    fun `importar a fixture real insere 13 e importar outra vez insere 0`() = runBlocking {
-        val repo = SmokeRepository(dao, Clock.fixed(Instant.parse("2026-09-30T12:00:00Z"), lisbon))
+    fun `importar a fixture sintetica insere 13 e importar outra vez insere 0`() = runBlocking {
+        val repo = SmokeRepository(dao, Clock.fixed(Instant.parse("2026-10-26T12:00:00Z"), lisbon))
         val events = fixtureEvents()
         assertEquals(SmokeRepository.ImportPreview(new = 13, existing = 0), repo.previewImport(events))
         assertEquals(13, repo.importEvents(events))
@@ -179,7 +179,7 @@ class SmokeRepositoryTest {
 
     @Test
     fun `importar depois de apagar 2 repoe so esses 2 com ids novos`() = runBlocking {
-        val repo = SmokeRepository(dao, Clock.fixed(Instant.parse("2026-09-30T12:00:00Z"), lisbon))
+        val repo = SmokeRepository(dao, Clock.fixed(Instant.parse("2026-10-26T12:00:00Z"), lisbon))
         val events = fixtureEvents()
         repo.importEvents(events)
         val before = repo.allEvents()

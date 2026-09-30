@@ -15,12 +15,14 @@ import java.time.ZonedDateTime
 class JsonImporterTest {
     private val lisbon = ZoneId.of("Europe/Lisbon")
     private val now = Instant.parse("2026-09-30T12:00:00Z")
+    /** Posterior ao último evento da fixture sintética (25-10-2026). */
+    private val fixtureNow = Instant.parse("2026-10-26T12:00:00Z")
 
     private fun export(events: List<ExportEvent>): String =
         StringWriter().also { JsonExporter.write(events, now, "0.7.0", it) }.toString()
 
     private fun fixture(): String =
-        requireNotNull(javaClass.classLoader!!.getResource("smoketracker-export-2026-09-30.json")) { "fixture em falta" }
+        requireNotNull(javaClass.classLoader!!.getResource("sample-export-v1.json")) { "fixture em falta" }
             .readText(Charsets.UTF_8)
 
     /** Documento mínimo com os eventos dados em JSON cru (para injectar erros). */
@@ -43,14 +45,21 @@ class JsonImporterTest {
     }
 
     @Test
-    fun `fixture real do Tiago - 13 eventos em Lisboa, milissegundos preservados`() {
-        val r = JsonImporter.read(fixture(), now)
+    fun `fixture sintetica - 13 eventos em Lisboa, milissegundos, meia-noite e mudanca de hora`() {
+        val r = JsonImporter.read(fixture(), fixtureNow)
         assertTrue(r.errors.toString(), r.ok)
         assertEquals(13, r.events.size)
         assertTrue(r.events.all { it.zone == lisbon })
-        assertEquals(Instant.parse("2026-09-29T14:08:19.121Z"), r.events.first().instant)
-        // O ficheiro real tem instantes repetidos? Não deve: cada toque é um evento distinto.
+        assertEquals(Instant.parse("2026-10-20T07:15:00.250Z"), r.events.first().instant)
+        // Cada toque é um evento distinto: não há instantes repetidos.
         assertEquals(13, r.events.map { it.instant.toEpochMilli() to it.zone.id }.toSet().size)
+        // 23:59:41 e 00:03:05 locais caem em dias locais diferentes.
+        val days = r.events.map { it.instant.atZone(lisbon).toLocalDate() }
+        assertEquals(3, days.count { it == java.time.LocalDate.of(2026, 10, 21) })
+        assertEquals(2, days.count { it == java.time.LocalDate.of(2026, 10, 22) })
+        // 25-10-2026: dois 01h30 locais (antes e depois do recuo da hora) com instantes distintos.
+        val dst = r.events.filter { it.instant.atZone(lisbon).toLocalDateTime() == LocalDateTime.of(2026, 10, 25, 1, 30) }
+        assertEquals(listOf(Instant.parse("2026-10-25T00:30:00Z"), Instant.parse("2026-10-25T01:30:00Z")), dst.map { it.instant })
     }
 
     @Test
