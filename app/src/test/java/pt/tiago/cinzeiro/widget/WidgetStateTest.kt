@@ -1,13 +1,12 @@
 package pt.tiago.cinzeiro.widget
 
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.test.runTest
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.mutablePreferencesOf
+import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import pt.tiago.cinzeiro.data.LoggedEvent
 import pt.tiago.cinzeiro.domain.SmokeEvent
@@ -23,14 +22,14 @@ class WidgetStateTest {
     @Test
     fun `widgetState monta contagem e ultimo de hoje`() {
         val last = Instant.parse("2026-09-30T12:32:00Z") // 13:32 WEST
-        assertEquals(WidgetState(5, "último 13:32"), widgetState(5, last, lisbon, today, lisbon))
+        assertEquals(WidgetState(5, "último 13:32", today), widgetState(5, last, lisbon, today, lisbon))
     }
 
     @Test
     fun `widgetState com ultimo de outro dia e sem registos`() {
         val ontem = Instant.parse("2026-09-29T21:00:00Z")
-        assertEquals(WidgetState(0, "último 29 set"), widgetState(0, ontem, lisbon, today, lisbon))
-        assertEquals(WidgetState(0, "sem registos"), widgetState(0, null, null, today, lisbon))
+        assertEquals(WidgetState(0, "último 29 set", today), widgetState(0, ontem, lisbon, today, lisbon))
+        assertEquals(WidgetState(0, "sem registos", today), widgetState(0, null, null, today, lisbon))
     }
 
     @Test
@@ -45,50 +44,80 @@ class WidgetStateTest {
         assertEquals("Registado às 09:05 · 3 hoje", loggedToastText(LocalTime.of(9, 5, 59), 3))
     }
 
+    // --- R4: estado empurrado ---
+
     @Test
-    fun `widgetStateFlow reemite quando a contagem muda`() = runTest {
-        val start = Instant.parse("2026-09-30T12:00:00Z")
-        val rows = MutableStateFlow(listOf<Instant>())
-        val seen = mutableListOf<WidgetState>()
-        val job = launch {
-            widgetStateFlow(
-                now = { start.plusMillis(testScheduler.currentTime) },
-                zone = lisbon,
-                observeCount = { from, to -> rows.map { l -> l.count { it >= from && it < to } } },
-                observeLast = { rows.map { l -> l.maxOrNull()?.let { LoggedEvent(1, SmokeEvent(it, lisbon)) } } },
-            ).collect { seen += it }
-        }
-        runCurrent()
-        rows.value = listOf(start)
-        runCurrent()
-        rows.value = emptyList()
-        runCurrent()
-        job.cancel()
-        assertEquals(
-            listOf(WidgetState(0, "sem registos"), WidgetState(1, "último 13:00"), WidgetState(0, "sem registos")),
-            seen,
+    fun `loadWidgetState conta so o dia local de now e usa o ultimo registo`() = runBlocking {
+        val now = Instant.parse("2026-09-30T12:00:00Z") // 13:00 em Lisboa
+        val events = listOf(
+            Instant.parse("2026-09-29T22:59:59Z"), // 23:59:59 de ontem → fora
+            Instant.parse("2026-09-29T23:00:00Z"), // 00:00 de hoje → dentro (início inclusivo)
+            Instant.parse("2026-09-30T11:30:00Z"), // 12:30 → dentro
         )
+        var asked: Pair<Instant, Instant>? = null
+        val state = loadWidgetState(
+            now, lisbon,
+            countBetween = { from, to -> asked = from to to; events.count { it >= from && it < to } },
+            last = { LoggedEvent(3, SmokeEvent(events.last(), lisbon)) },
+        )
+        assertEquals(WidgetState(2, "último 12:30", today), state)
+        assertEquals(dayBounds(today, lisbon), asked)
     }
 
     @Test
-    fun `widgetStateFlow troca de dia a meia-noite local sem novo update`() = runTest {
-        val start = Instant.parse("2026-09-30T22:59:00Z") // 23:59 em Lisboa
-        val events = listOf(Instant.parse("2026-09-30T20:00:00Z")) // 21:00 de hoje
-        val seen = mutableListOf<WidgetState>()
-        val job = launch {
-            widgetStateFlow(
-                now = { start.plusMillis(testScheduler.currentTime) },
-                zone = lisbon,
-                observeCount = { from, to -> flowOf(events.count { it >= from && it < to }) },
-                observeLast = { flowOf(LoggedEvent(1, SmokeEvent(events.last(), lisbon))) },
-            ).collect { seen += it }
-        }
-        runCurrent()
-        assertEquals(listOf(WidgetState(1, "último 21:00")), seen)
-        advanceTimeBy(62_000) // passa a meia-noite (+ margem)
-        runCurrent()
-        job.cancel()
-        assertEquals(WidgetState(0, "último 30 set"), seen.last())
-        assertEquals(2, seen.size)
+    fun `loadWidgetState sem registos`() = runBlocking {
+        val state = loadWidgetState(Instant.parse("2026-09-30T12:00:00Z"), lisbon, { _, _ -> 0 }, { null })
+        assertEquals(WidgetState(0, "sem registos", today), state)
+    }
+
+    @Test
+    fun `loadWidgetState logo depois da meia-noite ja e o dia novo`() = runBlocking {
+        val ev = Instant.parse("2026-09-30T20:00:00Z")
+        val state = loadWidgetState(
+            Instant.parse("2026-09-30T23:00:05Z"), // 00:00:05 de 1 out em Lisboa
+            lisbon,
+            countBetween = { from, to -> listOf(ev).count { it >= from && it < to } },
+            last = { LoggedEvent(1, SmokeEvent(ev, lisbon)) },
+        )
+        assertEquals(WidgetState(0, "último 30 set", LocalDate.of(2026, 10, 1)), state)
+    }
+
+    @Test
+    fun `displayedOn mostra o estado do proprio dia e zero se for de outro dia`() {
+        val s = WidgetState(4, "último 21:00", today)
+        assertEquals(s, s.displayedOn(today))
+        assertEquals(WidgetState(0, "último 21:00", today), s.displayedOn(today.plusDays(1)))
+    }
+
+    @Test
+    fun `WidgetState ida e volta pelas Preferences`() {
+        val s = WidgetState(7, "último 13:32", today)
+        val prefs = emptyPreferences().toMutablePreferences().apply { s.writeTo(this) }
+        assertEquals(s, WidgetState.readFrom(prefs))
+        assertEquals(7, prefs[intPreferencesKey("count")])
+        assertEquals("2026-09-30", prefs[stringPreferencesKey("day")])
+    }
+
+    @Test
+    fun `writeTo substitui o estado anterior`() {
+        val prefs = emptyPreferences().toMutablePreferences()
+        WidgetState(1, "último 10:00", today).writeTo(prefs)
+        WidgetState(2, "último 10:05", today).writeTo(prefs)
+        assertEquals(WidgetState(2, "último 10:05", today), WidgetState.readFrom(prefs))
+    }
+
+    @Test
+    fun `readFrom devolve null sem push ou com estado incompleto ou corrompido`() {
+        assertNull(WidgetState.readFrom(emptyPreferences()))
+        assertNull(WidgetState.readFrom(mutablePreferencesOf(intPreferencesKey("count") to 3)))
+        assertNull(
+            WidgetState.readFrom(
+                mutablePreferencesOf(
+                    intPreferencesKey("count") to 3,
+                    stringPreferencesKey("lastLabel") to "x",
+                    stringPreferencesKey("day") to "ontem",
+                ),
+            ),
+        )
     }
 }

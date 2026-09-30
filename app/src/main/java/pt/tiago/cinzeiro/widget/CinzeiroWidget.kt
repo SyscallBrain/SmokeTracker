@@ -32,46 +32,54 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import kotlinx.coroutines.flow.first
+import androidx.datastore.preferences.core.Preferences
+import androidx.glance.appwidget.state.getAppWidgetState
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.currentState
+import androidx.glance.state.GlanceStateDefinition
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import pt.tiago.cinzeiro.App
 import pt.tiago.cinzeiro.MainActivity
-import pt.tiago.cinzeiro.ui.format.Formats
+import pt.tiago.cinzeiro.feedback.FeedbackLog
 import java.time.LocalDate
-import java.time.ZoneId
-
-/** O que o widget mostra; vem de [widgetStateFlow], desenhado em [WidgetContent]. */
-data class WidgetState(val todayCount: Int, val lastLabel: String)
 
 /**
- * «Último» em hora **absoluta** (ADR §6: o widget não se actualiza ao minuto, «há X min» ficaria
- * errado). Hoje → «último 13:32»; outro dia → «último 28 set»; sem registos → «sem registos».
+ * Widget como **vista de estado empurrado** (R4). O estado vive no `DataStore<Preferences>` do
+ * Glance (um por widget, `PreferencesGlanceStateDefinition`) e é escrito por [WidgetUpdater.push];
+ * a composição só o lê com `currentState<Preferences>()`. Não há Flows do Room na composição.
+ *
+ * Porque funciona com sessão viva ou morta (Glance 1.2.0, fontes):
+ * - sessão viva: `update()` envia `UpdateGlanceState`; `AppWidgetSession.processEvent` relê o
+ *   estado com `configManager.getValue(...)` e atribui-o a `glanceState`, que é o valor de
+ *   `LocalState` → recompõe com o valor novo;
+ * - sessão nova: `AppWidgetSession.provideGlance` lê o estado antes da primeira composição.
  */
-fun lastLabel(last: java.time.Instant?, lastZone: ZoneId?, today: LocalDate, zone: ZoneId): String {
-    if (last == null) return "sem registos"
-    val local = last.atZone(lastZone ?: zone)
-    return if (last.atZone(zone).toLocalDate() == today) "último ${Formats.time(local.toLocalTime())}"
-    else "último ${Formats.dayMonth(local.toLocalDate())}"
-}
-
 class CinzeiroWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single
 
-    /**
-     * Os dados são lidos **dentro** da composição (Flows do Room + `collectAsState`). O Glance 1.2.0
-     * mantém a sessão viva (`SessionWorker`, `initialTimeout` 45 s, prolongado a cada evento) e,
-     * com sessão viva, `update()/updateAll()` só envia `UpdateGlanceState` e **recompõe** — não volta
-     * a chamar `provideGlance`. Um valor lido antes de `provideContent` ficava congelado (bug R2.2).
-     */
+    override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val repo = (context.applicationContext as App).container.repository
-        val states = widgetStateFlow(repo::now, repo.zone(), repo::observeCountBetween, repo::observeLast)
-        val initial = states.first() // primeiro frame já com dados, sem «0» transitório
+        val app = context.applicationContext as App
+        val repo = app.container.repository
+        // Widget acabado de pôr (ou dados da app limpos): ainda sem push → preenche uma vez aqui.
+        val pushed = WidgetState.readFrom(getAppWidgetState<Preferences>(context, id))
+        val seeded = if (pushed == null) {
+            val state = loadWidgetState(repo.now(), repo.zone(), repo::countBetween, repo::lastEvent)
+            updateAppWidgetState(context, PreferencesGlanceStateDefinition, id) { prefs ->
+                prefs.toMutablePreferences().apply { state.writeTo(this) }
+            }
+            state
+        } else null
+        runCatching {
+            FeedbackLog.append(app, FeedbackLog.provideLine(id.toString(), pushed ?: seeded, seededNow = seeded != null))
+        }
         provideContent {
-            val state by remember { states }.collectAsState(initial)
-            WidgetContent(state)
+            val today = LocalDate.now(repo.zone())
+            val state = WidgetState.readFrom(currentState<Preferences>())
+                ?: seeded
+                ?: WidgetState(0, "sem registos", today)
+            WidgetContent(state.displayedOn(today))
         }
     }
 }

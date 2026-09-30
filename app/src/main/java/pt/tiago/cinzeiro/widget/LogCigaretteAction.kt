@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.glance.GlanceId
 import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
-import androidx.glance.appwidget.updateAll
 import pt.tiago.cinzeiro.App
 import pt.tiago.cinzeiro.feedback.Feedback
 import pt.tiago.cinzeiro.feedback.FeedbackOrigin
@@ -12,7 +11,7 @@ import pt.tiago.cinzeiro.feedback.FeedbackOrigin
 /**
  * «+1» do widget: um toque, sem confirmação (ADR §7). Grava, dá o feedback escolhido nas
  * Definições (vibração com padrão explícito + Toast «Registado às HH:MM · N hoje», ver [Feedback])
- * e pede ao Glance para redesenhar; a contagem em si vem dos Flows observados pela composição.
+ * e empurra o estado novo para o widget ([WidgetUpdater.push], R4).
  */
 class LogCigaretteAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
@@ -26,6 +25,6 @@ class LogCigaretteAction : ActionCallback {
         val text = loggedToastText(now.atZone(zone).toLocalTime(), count)
         val settings = app.container.settings.current()
         Feedback.performAndLog(app, settings, FeedbackOrigin.WIDGET, text)
-        CinzeiroWidget().updateAll(app)
+        WidgetUpdater.push(app, PushCaller.ACTION)
     }
 }

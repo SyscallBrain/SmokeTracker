@@ -65,9 +65,8 @@ class SmokeRepository(
     suspend fun countBetween(from: Instant, to: Instant): Int =
         dao.countBetween(from.toEpochMilli(), to.toEpochMilli())
 
-    /** Contagem em `[from, to)`, reemitida a cada inserção/remoção (widget). */
-    fun observeCountBetween(from: Instant, to: Instant): Flow<Int> =
-        dao.observeCountBetween(from.toEpochMilli(), to.toEpochMilli())
+    /** Último registo, leitura única (widget, R4). */
+    suspend fun lastEvent(): LoggedEvent? = dao.last()?.toLogged()
 
     /** Todos os registos, ordenados por instante (e id), para exportar. */
     suspend fun allEvents(): List<LoggedEvent> = dao.all().map { it.toLogged() }

@@ -1,14 +1,14 @@
 package pt.tiago.cinzeiro
 
 import android.app.Application
-import androidx.glance.appwidget.updateAll
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import pt.tiago.cinzeiro.di.AppContainer
-import pt.tiago.cinzeiro.widget.CinzeiroWidget
 import pt.tiago.cinzeiro.widget.MidnightWorker
+import pt.tiago.cinzeiro.widget.PushCaller
+import pt.tiago.cinzeiro.widget.WidgetUpdater
 
 class App : Application() {
     lateinit var container: AppContainer
@@ -34,9 +34,8 @@ class App : Application() {
             runCatching { if (MidnightWorker.hasWidgets(this@App)) MidnightWorker.schedule(this@App) }
         }
         appScope.launch {
-            container.repository.changes.collect {
-                runCatching { CinzeiroWidget().updateAll(this@App) }
-            }
+            // Sem runCatching mudo (R4): push nunca lança e regista os erros no log de diagnóstico.
+            container.repository.changes.collect { WidgetUpdater.push(this@App, PushCaller.APP) }
         }
     }
 }

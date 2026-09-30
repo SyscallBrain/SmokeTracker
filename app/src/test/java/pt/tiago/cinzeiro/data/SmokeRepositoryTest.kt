@@ -135,37 +135,13 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `observeCountBetween reemite ao inserir e apagar e respeita o intervalo`() = runBlocking {
-        val from = now.minusSeconds(3600)
-        val to = now.plusSeconds(1)
-        val counts = repo.observeCountBetween(from, to)
-        assertEquals(0, counts.first())
-
-        val a = repo.logNow()
-        repo.logAt(from.minusSeconds(1), lisbon) // fora do intervalo
-        assertEquals(1, withTimeout(5_000) { counts.first { it == 1 } })
-
-        repo.logAt(from, lisbon) // início incluído
-        assertEquals(2, withTimeout(5_000) { counts.first { it == 2 } })
-
-        repo.delete(a)
-        assertEquals(1, withTimeout(5_000) { counts.first { it == 1 } })
-    }
-
-    @Test
-    fun `observeCountBetween de um coleccionador vivo ve as alteracoes seguintes`() = runBlocking {
-        val seen = java.util.concurrent.CopyOnWriteArrayList<Int>()
-        val job = launch(Dispatchers.Default) {
-            repo.observeCountBetween(now.minusSeconds(3600), now.plusSeconds(1)).collect { seen += it }
-        }
-        withTimeout(5_000) { while (seen.isEmpty()) delay(10) }
-        val id = repo.logNow()
-        withTimeout(5_000) { while (seen.last() != 1) delay(10) }
-        repo.delete(id)
-        withTimeout(5_000) { while (seen.last() != 0) delay(10) }
-        job.cancel()
-        assertEquals(0, seen.first())
-        assertTrue(seen.contains(1))
+    fun `lastEvent devolve o mais recente por instante e null sem registos`() = runBlocking {
+        assertNull(repo.lastEvent())
+        val recent = repo.logNow()
+        repo.logAt(now.minusSeconds(3600), ZoneId.of("Asia/Tokyo")) // inserido depois, mas mais antigo
+        assertEquals(recent, repo.lastEvent()!!.id)
+        repo.delete(recent)
+        assertEquals(ZoneId.of("Asia/Tokyo"), repo.lastEvent()!!.zone)
     }
 
     @Test

@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import pt.tiago.cinzeiro.ui.nav.AppNav
 import pt.tiago.cinzeiro.ui.theme.CinzeiroTheme
+import pt.tiago.cinzeiro.widget.PushCaller
+import pt.tiago.cinzeiro.widget.WidgetUpdater
 
 class MainActivity : ComponentActivity() {
 
@@ -33,6 +35,16 @@ class MainActivity : ComponentActivity() {
             CinzeiroTheme { AppNav(container) }
         }
         if (savedInstanceState == null) askNotificationsOnce()
+    }
+
+    /**
+     * R4: rede de segurança ao sair da app — volta a empurrar o estado para o widget. Corre no
+     * `appScope` (não no `lifecycleScope`, que pode ser cancelado logo a seguir ao `onStop`).
+     */
+    override fun onStop() {
+        super.onStop()
+        val app = application as App
+        app.appScope.launch { WidgetUpdater.push(app, PushCaller.ON_STOP) }
     }
 
     /**

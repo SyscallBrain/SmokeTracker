@@ -40,8 +40,8 @@ class FakeSmokeEventDao : SmokeEventDao {
     override suspend fun countBetween(fromMs: Long, toMs: Long): Int =
         rows.value.count { it.atEpochMs in fromMs until toMs }
 
-    override fun observeCountBetween(fromMs: Long, toMs: Long): Flow<Int> =
-        rows.map { l -> l.count { it.atEpochMs in fromMs until toMs } }
+    override suspend fun last(): SmokeEventEntity? =
+        rows.value.maxWithOrNull(compareBy({ it.atEpochMs }, { it.id }))
 
     override suspend fun all(): List<SmokeEventEntity> = rows.value.sortedWith(compareBy({ it.atEpochMs }, { it.id }))
 }

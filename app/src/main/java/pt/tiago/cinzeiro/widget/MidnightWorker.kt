@@ -2,7 +2,6 @@ package pt.tiago.cinzeiro.widget
 
 import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidgetManager
-import androidx.glance.appwidget.updateAll
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -19,7 +18,7 @@ import java.util.concurrent.TimeUnit
  */
 class MidnightWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        CinzeiroWidget().updateAll(applicationContext)
+        WidgetUpdater.push(applicationContext, PushCaller.MIDNIGHT)
         if (hasWidgets(applicationContext)) schedule(applicationContext, ExistingWorkPolicy.REPLACE)
         return Result.success()
     }
