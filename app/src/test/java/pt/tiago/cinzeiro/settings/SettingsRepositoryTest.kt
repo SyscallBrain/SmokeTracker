@@ -51,7 +51,7 @@ class SettingsRepositoryTest {
     @Test fun values_survive_a_new_datastore_on_the_same_file() = runBlocking {
         repo.setVibrationType(VibrationType.STRONG)
         repo.setShowMessage(false)
-        // cancel() não espera: a DataStore antiga só larga o ficheiro quando o scope termina.
+        // cancel() does not wait: the old DataStore only releases the file when the scope finishes.
         scope.coroutineContext.job.cancelAndJoin()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val reopened = SettingsRepository(newStore())

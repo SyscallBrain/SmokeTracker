@@ -16,7 +16,7 @@ class ExportersTest {
     private fun csv(events: List<ExportEvent>) = StringWriter().also { CsvExporter.write(events, it) }.toString()
 
     @Test
-    fun `CSV com cabecalho e linha exactamente como no ADR`() {
+    fun `CSV with header and row exactly as in the ADR`() {
         val out = csv(listOf(ExportEvent(1, Instant.parse("2026-09-29T12:32:05Z"), lisbon)))
         assertEquals(
             "id,instant_utc,zone_id,local_datetime\n1,2026-09-29T12:32:05Z,Europe/Lisbon,2026-09-29T13:32:05\n",
@@ -26,12 +26,12 @@ class ExportersTest {
     }
 
     @Test
-    fun `CSV sem eventos so tem o cabecalho`() {
+    fun `CSV with no events has only the header`() {
         assertEquals("id,instant_utc,zone_id,local_datetime\n", csv(emptyList()))
     }
 
     @Test
-    fun `mudanca de hora 25-10-2026 01h30 em Lisboa - dois instantes, mesma hora local`() {
+    fun `DST change 25-10-2026 01h30 in Lisbon - two instants, same local time`() {
         val local = LocalDateTime.of(2026, 10, 25, 1, 30)
         val first = ZonedDateTime.ofLocal(local, lisbon, null).withEarlierOffsetAtOverlap().toInstant()
         val second = ZonedDateTime.ofLocal(local, lisbon, null).withLaterOffsetAtOverlap().toInstant()
@@ -48,14 +48,14 @@ class ExportersTest {
     }
 
     @Test
-    fun `local_datetime usa a zona do proprio registo e trunca ao segundo sem perder o instante`() {
+    fun `local_datetime uses the event's own zone and truncates to the second without losing the instant`() {
         val e = ExportEvent(3, Instant.parse("2026-09-29T12:32:05.123Z"), ZoneId.of("Asia/Tokyo"))
         assertEquals("2026-09-29T21:32:05", e.localDateTime)
         assertEquals("2026-09-29T12:32:05.123Z", e.instantUtc)
     }
 
     @Test
-    fun `JSON tem format, version 1, count e faz round-trip`() {
+    fun `JSON has format, version 1, count and round-trips`() {
         val events = listOf(
             ExportEvent(1, Instant.parse("2026-09-29T12:32:05Z"), lisbon),
             ExportEvent(2, Instant.parse("2026-10-25T00:30:00Z"), lisbon),
@@ -76,7 +76,7 @@ class ExportersTest {
     }
 
     @Test
-    fun `JSON usa as chaves do ADR`() {
+    fun `JSON uses the ADR keys`() {
         val text = StringWriter().also {
             JsonExporter.write(listOf(ExportEvent(1, Instant.parse("2026-09-29T12:32:05Z"), lisbon)), Instant.parse("2026-09-29T13:40:00Z"), "1.0.0", it)
         }.toString()
@@ -88,7 +88,7 @@ class ExportersTest {
     }
 
     @Test
-    fun `nome sugerido do ficheiro`() {
+    fun `suggested file name`() {
         assertEquals("smoketracker-2026-09-29.csv", exportFileName(java.time.LocalDate.of(2026, 9, 29), "csv"))
     }
 }

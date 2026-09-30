@@ -16,12 +16,12 @@ class SummaryTest {
     private val yesterday = today.minusDays(1)
 
     @Test
-    fun `Period tem 7, 30, 90 e 365 dias`() {
+    fun `Period has 7, 30, 90 and 365 days`() {
         assertEquals(listOf(7, 30, 90, 365), Period.entries.map { it.days })
     }
 
     @Test
-    fun `periodo sem eventos da total 0, perDay 0 e avgInterval null`() {
+    fun `period without events gives total 0, perDay 0 and avgInterval null`() {
         val s = summary(emptyList(), Period.D7, today, firstEventDate = null)
 
         assertEquals(0, s.total)
@@ -32,12 +32,12 @@ class SummaryTest {
     }
 
     @Test
-    fun `total conta so os N dias que terminam em endInclusive`() {
+    fun `total counts only the N days ending at endInclusive`() {
         val events = listOf(
-            event("2026-09-23T00:00"), // primeiro dia do D7
-            event("2026-09-29T23:59"), // último dia do D7
-            event("2026-09-22T23:59"), // fora
-            event("2026-09-30T00:00"), // fora
+            event("2026-09-23T00:00"), // first day of D7
+            event("2026-09-29T23:59"), // last day of D7
+            event("2026-09-22T23:59"), // outside
+            event("2026-09-30T00:00"), // outside
         )
 
         val s = summary(events, Period.D7, today, firstEventDate = LocalDate.of(2026, 1, 1))
@@ -46,8 +46,8 @@ class SummaryTest {
     }
 
     @Test
-    fun `primeira semana de uso divide perDay pelos dias efectivos`() {
-        // Começou a usar há 3 dias (27, 28, 29): 6 cigarros -> 2/dia, não 6/30.
+    fun `first week of use divides perDay by the actual days`() {
+        // Started using 3 days ago (27, 28, 29): 6 cigarettes -> 2/day, not 6/30.
         val events = listOf("27", "27", "28", "28", "29", "29").mapIndexed { i, dd ->
             event("2026-09-${dd}T1$i:00")
         }
@@ -59,8 +59,8 @@ class SummaryTest {
     }
 
     @Test
-    fun `com historico longo perDay divide por N`() {
-        val events = (0 until 7).map { event("2026-09-2${3 + it}T10:00") } // 1 por dia, 23..29
+    fun `with long history perDay divides by N`() {
+        val events = (0 until 7).map { event("2026-09-2${3 + it}T10:00") } // 1 per day, 23..29
 
         val s = summary(events, Period.D7, today, firstEventDate = LocalDate.of(2025, 1, 1))
 
@@ -68,12 +68,12 @@ class SummaryTest {
     }
 
     @Test
-    fun `avgInterval ignora o intervalo da noite`() {
+    fun `avgInterval ignores the overnight interval`() {
         val events = listOf(
             event("2026-09-28T10:00"),
             event("2026-09-28T11:00"), // +60 min
             event("2026-09-28T23:00"), // +720 min
-            event("2026-09-29T07:00"), // noite: ignorado
+            event("2026-09-29T07:00"), // overnight: ignored
             event("2026-09-29T07:30"), // +30 min
         )
 
@@ -84,10 +84,10 @@ class SummaryTest {
     }
 
     @Test
-    fun `avgInterval so usa eventos dentro do periodo`() {
+    fun `avgInterval only uses events within the period`() {
         val events = listOf(
-            event("2026-09-20T10:00"), event("2026-09-20T10:10"), // período anterior: 10 min
-            event("2026-09-28T10:00"), event("2026-09-28T12:00"), // período actual: 120 min
+            event("2026-09-20T10:00"), event("2026-09-20T10:10"), // previous period: 10 min
+            event("2026-09-28T10:00"), event("2026-09-28T12:00"), // current period: 120 min
         )
 
         val s = summary(events, Period.D7, today, firstEventDate = LocalDate.of(2026, 9, 1))
@@ -96,7 +96,7 @@ class SummaryTest {
     }
 
     @Test
-    fun `avgInterval e null quando nenhum dia tem dois eventos`() {
+    fun `avgInterval is null when no day has two events`() {
         val events = listOf(event("2026-09-27T23:00"), event("2026-09-28T01:00"), event("2026-09-29T09:00"))
 
         val s = summary(events, Period.D7, today, firstEventDate = LocalDate.of(2026, 9, 1))
@@ -105,7 +105,7 @@ class SummaryTest {
     }
 
     @Test
-    fun `avgInterval na mudanca de hora usa o tempo real entre os dois 01h30`() {
+    fun `avgInterval on DST change uses the real time between the two 01h30`() {
         val events = listOf(
             SmokeEvent(Instant.parse("2026-10-25T00:30:00Z"), LISBON),
             SmokeEvent(Instant.parse("2026-10-25T01:30:00Z"), LISBON),
@@ -117,7 +117,7 @@ class SummaryTest {
     }
 
     @Test
-    fun `maxDay e o dia com mais cigarros`() {
+    fun `maxDay is the day with the most cigarettes`() {
         val events = listOf(
             event("2026-09-25T10:00"),
             event("2026-09-26T10:00"), event("2026-09-26T11:00"), event("2026-09-26T12:00"),
@@ -130,9 +130,9 @@ class SummaryTest {
     }
 
     @Test
-    fun `summary D7 com endInclusive ontem ignora os eventos de hoje`() {
-        val events = (0 until 7).map { event("2026-09-2${2 + it}T10:00") } + // 22..28, 1 por dia
-            listOf(event("2026-09-29T08:00"), event("2026-09-29T09:00"))       // hoje
+    fun `summary D7 with endInclusive yesterday ignores today's events`() {
+        val events = (0 until 7).map { event("2026-09-2${2 + it}T10:00") } + // 22..28, 1 per day
+            listOf(event("2026-09-29T08:00"), event("2026-09-29T09:00"))       // today
 
         val s = summary(events, Period.D7, yesterday, firstEventDate = LocalDate.of(2026, 9, 1))
 
@@ -142,8 +142,8 @@ class SummaryTest {
     }
 
     @Test
-    fun `deltaPct compara perDay com o periodo anterior de igual duracao`() {
-        // Anterior (16..22): 14 cigarros = 2/dia. Actual (23..29): 21 = 3/dia -> +50 %.
+    fun `deltaPct compares perDay with the previous period of equal length`() {
+        // Previous (16..22): 14 cigarettes = 2/day. Current (23..29): 21 = 3/day -> +50 %.
         val previous = (16..22).flatMap { dd -> List(2) { h -> event("2026-09-${dd}T1$h:00") } }
         val current = (23..29).flatMap { dd -> List(3) { h -> event("2026-09-${dd}T1$h:00") } }
 
@@ -154,7 +154,7 @@ class SummaryTest {
     }
 
     @Test
-    fun `deltaPct negativo quando fuma menos`() {
+    fun `deltaPct negative when smoking less`() {
         val previous = (16..22).flatMap { dd -> List(4) { h -> event("2026-09-${dd}T1$h:00") } }
         val current = (23..29).flatMap { dd -> List(3) { h -> event("2026-09-${dd}T1$h:00") } }
 
@@ -164,8 +164,8 @@ class SummaryTest {
     }
 
     @Test
-    fun `deltaPct e null quando o periodo anterior nao esta completo`() {
-        // Primeiro evento a 17-09: o período anterior (16..22) começa antes do primeiro uso.
+    fun `deltaPct is null when the previous period is not complete`() {
+        // First event on 17-09: the previous period (16..22) starts before first use.
         val events = (17..29).map { dd -> event("2026-09-${dd}T10:00") }
 
         val s = summary(events, Period.D7, today, firstEventDate = LocalDate.of(2026, 9, 17))
@@ -174,7 +174,7 @@ class SummaryTest {
     }
 
     @Test
-    fun `deltaPct e null quando o periodo anterior teve zero cigarros`() {
+    fun `deltaPct is null when the previous period had zero cigarettes`() {
         val events = listOf(event("2026-09-10T10:00"), event("2026-09-29T10:00"))
 
         val s = summary(events, Period.D7, today, firstEventDate = LocalDate.of(2026, 9, 10))
@@ -183,21 +183,21 @@ class SummaryTest {
     }
 
     @Test
-    fun `desempenho - summary sobre 3 anos com 40 por dia`() {
+    fun `performance - summary over 3 years with 40 per day`() {
         val end = LocalDate.of(2026, 9, 29)
         val start = end.minusYears(3).plusDays(1)
         val events = ArrayList<SmokeEvent>()
         var day = start
         while (day <= end) {
             for (i in 0 until 40) {
-                // 40 cigarros entre as 07:00 e as 23:40, de 25 em 25 min.
+                // 40 cigarettes between 07:00 and 23:40, every 25 min.
                 val time = LocalTime.of(7, 0).plusMinutes(25L * i)
                 events += SmokeEvent(day.atTime(time).atZone(LISBON).toInstant(), LISBON)
             }
             day = day.plusDays(1)
         }
 
-        repeat(3) { Period.entries.forEach { p -> summary(events, p, end, start) } } // aquecimento JIT
+        repeat(3) { Period.entries.forEach { p -> summary(events, p, end, start) } } // JIT warm-up
 
         val runs = 10
         val timings = Period.entries.associateWith { p ->
@@ -206,7 +206,7 @@ class SummaryTest {
             (System.nanoTime() - t0) / runs / 1_000_000.0
         }
         timings.forEach { (p, ms) ->
-            println("PERF summary %s sobre %d eventos: %.2f ms (média de %d)".format(p, events.size, ms, runs))
+            println("PERF summary %s over %d events: %.2f ms (average of %d)".format(p, events.size, ms, runs))
         }
 
         assertEquals(40 * 365, summary(events, Period.Y1, end, start).total)

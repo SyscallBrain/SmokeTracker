@@ -49,7 +49,7 @@ class SmokeRepositoryTest {
     fun tearDown() = db.close()
 
     @Test
-    fun `logNow insere com o instante e a zona do relogio e observeLast ve-o`() = runBlocking {
+    fun `logNow inserts with the clock instant and zone and observeLast sees it`() = runBlocking {
         val id = repo.logNow()
 
         val last = repo.observeLast().first()!!
@@ -59,7 +59,7 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `inserir e observar pelo intervalo`() = runBlocking {
+    fun `insert and observe by range`() = runBlocking {
         repo.logAt(now.minusSeconds(60), lisbon)
         repo.logNow()
 
@@ -69,10 +69,10 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `observeBetween inclui o inicio e exclui o fim`() = runBlocking {
+    fun `observeBetween includes the start and excludes the end`() = runBlocking {
         val from = now.minusSeconds(100)
-        repo.logAt(from, lisbon) // == from → incluído
-        repo.logAt(now, lisbon) // == to → excluído
+        repo.logAt(from, lisbon) // == from → included
+        repo.logAt(now, lisbon) // == to → excluded
 
         val events = repo.observeBetween(from, now).first()
         assertEquals(listOf(from), events.map { it.instant })
@@ -80,7 +80,7 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `apagar pelo id remove so esse registo`() = runBlocking {
+    fun `delete by id removes only that entry`() = runBlocking {
         val a = repo.logAt(now.minusSeconds(10), lisbon)
         val b = repo.logNow()
 
@@ -92,38 +92,38 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `firstEventInstant e nulo com a BD vazia`() = runBlocking {
+    fun `firstEventInstant is null with an empty DB`() = runBlocking {
         assertNull(repo.firstEventInstant())
         assertNull(dao.firstEventMs())
         assertNull(repo.observeLast().first())
     }
 
     @Test
-    fun `firstEventInstant devolve o mais antigo`() = runBlocking {
+    fun `firstEventInstant returns the oldest`() = runBlocking {
         repo.logNow()
         repo.logAt(now.minusSeconds(86_400), lisbon)
         assertEquals(now.minusSeconds(86_400), repo.firstEventInstant())
     }
 
     @Test
-    fun `logAt rejeita instantes no futuro`() = runBlocking {
+    fun `logAt rejects instants in the future`() = runBlocking {
         try {
             repo.logAt(now.plusMillis(1), lisbon)
-            fail("devia rejeitar o futuro")
+            fail("should reject a future instant")
         } catch (_: IllegalArgumentException) {
         }
         assertEquals(0, repo.countBetween(Instant.EPOCH, now.plusSeconds(3600)))
     }
 
     @Test
-    fun `logAt guarda a zona do registo e nao a do relogio`() = runBlocking {
+    fun `logAt stores the entry zone and not the clock zone`() = runBlocking {
         val tokyo = ZoneId.of("Asia/Tokyo")
         repo.logAt(now.minusSeconds(5), tokyo)
         assertEquals(tokyo, repo.observeLast().first()!!.zone)
     }
 
     @Test
-    fun `changes emite depois de inserir e apagar`() = runBlocking {
+    fun `changes emits after insert and delete`() = runBlocking {
         val seen = mutableListOf<SmokeRepository.Change>()
         val job = CoroutineScope(Dispatchers.Unconfined).launch {
             repo.changes.collect { seen += it }
@@ -135,17 +135,17 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `lastEvent devolve o mais recente por instante e null sem registos`() = runBlocking {
+    fun `lastEvent returns the most recent by instant and null with no entries`() = runBlocking {
         assertNull(repo.lastEvent())
         val recent = repo.logNow()
-        repo.logAt(now.minusSeconds(3600), ZoneId.of("Asia/Tokyo")) // inserido depois, mas mais antigo
+        repo.logAt(now.minusSeconds(3600), ZoneId.of("Asia/Tokyo")) // inserted later, but older
         assertEquals(recent, repo.lastEvent()!!.id)
         repo.delete(recent)
         assertEquals(ZoneId.of("Asia/Tokyo"), repo.lastEvent()!!.zone)
     }
 
     @Test
-    fun `allEvents devolve tudo por ordem de instante e depois id`() = runBlocking {
+    fun `allEvents returns everything ordered by instant then id`() = runBlocking {
         val b = repo.logAt(now.minusSeconds(60), lisbon)
         val a = repo.logAt(now.minusSeconds(3600), ZoneId.of("Asia/Tokyo"))
         val c = repo.logAt(now.minusSeconds(60), lisbon)
@@ -154,7 +154,7 @@ class SmokeRepositoryTest {
         assertEquals(ZoneId.of("Asia/Tokyo"), all[0].zone)
     }
 
-    // --- Importação (R6) ---
+    // --- Import (R6) ---
 
     private fun fixtureEvents(): List<pt.tiago.cinzeiro.domain.SmokeEvent> {
         val text = javaClass.classLoader!!.getResource("sample-export-v1.json")!!.readText()
@@ -164,7 +164,7 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `importar a fixture sintetica insere 13 e importar outra vez insere 0`() = runBlocking {
+    fun `importing the synthetic fixture inserts 13 and importing again inserts 0`() = runBlocking {
         val repo = SmokeRepository(dao, Clock.fixed(Instant.parse("2026-10-26T12:00:00Z"), lisbon))
         val events = fixtureEvents()
         assertEquals(SmokeRepository.ImportPreview(new = 13, existing = 0), repo.previewImport(events))
@@ -178,7 +178,7 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `importar depois de apagar 2 repoe so esses 2 com ids novos`() = runBlocking {
+    fun `importing after deleting 2 restores only those 2 with new ids`() = runBlocking {
         val repo = SmokeRepository(dao, Clock.fixed(Instant.parse("2026-10-26T12:00:00Z"), lisbon))
         val events = fixtureEvents()
         repo.importEvents(events)
@@ -193,14 +193,14 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `dedupe e por instante ao ms e zona - mesma hora noutra zona entra, repetidos no lote nao`() = runBlocking {
+    fun `dedupe is by instant to the ms and zone - same time in another zone goes in, duplicates within the batch do not`() = runBlocking {
         val t = now.minusSeconds(60)
         repo.logAt(t, lisbon)
         val batch = listOf(
-            pt.tiago.cinzeiro.domain.SmokeEvent(t, lisbon), // já existe
-            pt.tiago.cinzeiro.domain.SmokeEvent(t, ZoneId.of("Asia/Tokyo")), // mesma instante, outra zona → novo
-            pt.tiago.cinzeiro.domain.SmokeEvent(t.plusMillis(1), lisbon), // +1 ms → novo
-            pt.tiago.cinzeiro.domain.SmokeEvent(t.plusMillis(1), lisbon), // repetido no próprio lote
+            pt.tiago.cinzeiro.domain.SmokeEvent(t, lisbon), // already exists
+            pt.tiago.cinzeiro.domain.SmokeEvent(t, ZoneId.of("Asia/Tokyo")), // same instant, other zone → new
+            pt.tiago.cinzeiro.domain.SmokeEvent(t.plusMillis(1), lisbon), // +1 ms → new
+            pt.tiago.cinzeiro.domain.SmokeEvent(t.plusMillis(1), lisbon), // duplicated within the batch itself
         )
         assertEquals(SmokeRepository.ImportPreview(new = 2, existing = 2), repo.previewImport(batch))
         assertEquals(2, repo.importEvents(batch))
@@ -208,7 +208,7 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `mudanca de hora - os dois 01h30 locais de 25-10-2026 entram ambos`() = runBlocking {
+    fun `DST change - both local 01h30 on 25-10-2026 go in`() = runBlocking {
         val repo = SmokeRepository(dao, Clock.fixed(Instant.parse("2026-11-01T00:00:00Z"), lisbon))
         val batch = listOf(
             pt.tiago.cinzeiro.domain.SmokeEvent(Instant.parse("2026-10-25T00:30:00Z"), lisbon),
@@ -220,14 +220,14 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `importar com evento no futuro nao insere nada`() = runBlocking {
+    fun `importing with an event in the future inserts nothing`() = runBlocking {
         val batch = listOf(
             pt.tiago.cinzeiro.domain.SmokeEvent(now.minusSeconds(60), lisbon),
             pt.tiago.cinzeiro.domain.SmokeEvent(now.plusSeconds(60), lisbon),
         )
         try {
             repo.importEvents(batch)
-            fail("devia recusar")
+            fail("should have been rejected")
         } catch (e: IllegalArgumentException) {
             assertTrue(e.message!!.startsWith("Registo n.º 2 no futuro"))
         }
@@ -235,8 +235,8 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `insertMissing e uma transaccao - falha a meio reverte tudo`() = runBlocking {
-        // Gatilho que aborta a inserção de uma zona «Boom»: simula uma falha a meio do lote.
+    fun `insertMissing is a transaction - failure midway rolls everything back`() = runBlocking {
+        // Trigger that aborts inserting a "Boom" zone: simulates a failure midway through the batch.
         db.openHelper.writableDatabase.execSQL(
             "CREATE TRIGGER boom BEFORE INSERT ON smoke_event WHEN NEW.zone_id = 'Boom' BEGIN SELECT RAISE(ABORT, 'boom'); END"
         )
@@ -247,7 +247,7 @@ class SmokeRepositoryTest {
         )
         try {
             dao.insertMissing(batch)
-            fail("devia falhar")
+            fail("should have failed")
         } catch (e: Exception) {
             assertTrue(e.toString(), e.toString().contains("boom"))
         }
@@ -255,7 +255,7 @@ class SmokeRepositoryTest {
     }
 
     @Test
-    fun `importar emite changes uma so vez no fim e nada se nao entrar nenhum`() = runBlocking {
+    fun `import emits changes only once at the end and nothing if none go in`() = runBlocking {
         val seen = mutableListOf<SmokeRepository.Change>()
         val job = CoroutineScope(Dispatchers.Unconfined).launch { repo.changes.collect { seen += it } }
         val batch = (1..5L).map { pt.tiago.cinzeiro.domain.SmokeEvent(now.minusSeconds(it * 60), lisbon) }

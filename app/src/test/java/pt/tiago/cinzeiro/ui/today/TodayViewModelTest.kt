@@ -29,7 +29,7 @@ import java.time.ZoneId
 @OptIn(ExperimentalCoroutinesApi::class)
 class TodayViewModelTest {
     private val zone = ZoneId.of("Europe/Lisbon")
-    // 2026-09-29 13:32:05 em Lisboa (UTC+1).
+    // 2026-09-29 13:32:05 in Lisbon (UTC+1).
     private val now = Instant.parse("2026-09-29T12:32:05Z")
     private val clock = Clock.fixed(now, zone)
     private val dispatcher = StandardTestDispatcher()
@@ -57,7 +57,7 @@ class TodayViewModelTest {
     private fun localAt(date: LocalDate, h: Int, m: Int) = date.atTime(h, m).atZone(zone).toInstant()
 
     @Test
-    fun `BD vazia da contagem 0, sem ultimo e sem media`() = runTest(dispatcher) {
+    fun `empty DB gives count 0, no last and no average`() = runTest(dispatcher) {
         val s = newVm().state.value
         assertEquals(false, s.loading)
         assertEquals(LocalDate.of(2026, 9, 29), s.date)
@@ -68,7 +68,7 @@ class TodayViewModelTest {
     }
 
     @Test
-    fun `logNow insere agora, sobe a contagem e emite o id e a hora local`() = runTest(dispatcher) {
+    fun `logNow inserts now, increments the count and emits the id and local time`() = runTest(dispatcher) {
         val vm = newVm()
         val event = backgroundScope.async(UnconfinedTestDispatcher(testScheduler)) { vm.events.first() }
 
@@ -84,14 +84,14 @@ class TodayViewModelTest {
     }
 
     @Test
-    fun `undo apaga o id inserido e nao o ultimo registo`() = runTest(dispatcher) {
+    fun `undo deletes the inserted id and not the latest entry`() = runTest(dispatcher) {
         val vm = newVm()
         val event = backgroundScope.async(UnconfinedTestDispatcher(testScheduler)) { vm.events.first() }
         vm.logNow()
         runCurrent()
         val mine = (event.await() as TodayEvent.Logged).id
 
-        // Entretanto o widget regista outro (mais recente).
+        // Meanwhile the widget logs another (more recent) one.
         val widgetId = repo.logNow()
         runCurrent()
         assertEquals(2, vm.state.value.countToday)
@@ -104,14 +104,14 @@ class TodayViewModelTest {
     }
 
     @Test
-    fun `media 7 dias usa ate ontem e ignora hoje`() = runTest(dispatcher) {
+    fun `7-day average uses up to yesterday and ignores today`() = runTest(dispatcher) {
         val today = LocalDate.of(2026, 9, 29)
-        // 14 dias anteriores: 10/dia nos 7 mais antigos, 7/dia nos 7 até ontem.
+        // 14 previous days: 10/day in the 7 oldest, 7/day in the 7 up to yesterday.
         for (d in 1..14) {
             val n = if (d <= 7) 7 else 10
             repeat(n) { i -> repo.logAt(localAt(today.minusDays(d.toLong()), 8 + i, 0), zone) }
         }
-        // Hoje: 2 (não pode puxar a média para baixo).
+        // Today: 2 (must not pull the average down).
         repo.logAt(localAt(today, 9, 0), zone)
         repo.logAt(localAt(today, 10, 30), zone)
 
@@ -123,7 +123,7 @@ class TodayViewModelTest {
     }
 
     @Test
-    fun `evento de ontem nao conta em hoje`() = runTest(dispatcher) {
+    fun `yesterday's event does not count towards today`() = runTest(dispatcher) {
         repo.logAt(localAt(LocalDate.of(2026, 9, 28), 23, 59), zone)
         val s = newVm().state.value
         assertEquals(0, s.countToday)
@@ -131,4 +131,4 @@ class TodayViewModelTest {
     }
 }
 
-/** DAO em memória (sem Room): o ViewModel só precisa do contrato. */
+/** In-memory DAO (no Room): the ViewModel only needs the contract. */

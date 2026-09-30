@@ -29,7 +29,7 @@ import java.time.ZoneId
 @OptIn(ExperimentalCoroutinesApi::class)
 class HistoryViewModelTest {
     private val zone = ZoneId.of("Europe/Lisbon")
-    private val now = Instant.parse("2026-09-29T12:32:05Z") // 13:32:05 em Lisboa
+    private val now = Instant.parse("2026-09-29T12:32:05Z") // 13:32:05 in Lisbon
     private val today = LocalDate.of(2026, 9, 29)
     private val dispatcher = StandardTestDispatcher()
     private lateinit var repo: SmokeRepository
@@ -53,7 +53,7 @@ class HistoryViewModelTest {
     private fun at(daysAgo: Long, h: Int, m: Int) = today.minusDays(daysAgo).atTime(h, m).atZone(zone).toInstant() to zone
 
     @Test
-    fun `agrupa por dia, mais recente primeiro, e pagina em blocos de 30 dias`() = runTest(dispatcher) {
+    fun `groups by day, newest first, and pages in blocks of 30 days`() = runTest(dispatcher) {
         repo.replaceAll(listOf(at(0, 9, 40), at(0, 13, 32), at(1, 23, 10), at(45, 10, 0), at(75, 8, 0)))
         val vm = newVm()
         var s = vm.state.value
@@ -74,13 +74,13 @@ class HistoryViewModelTest {
         s = vm.state.value
         assertEquals(4, s.days.size)
         assertFalse(s.canLoadMore)
-        vm.loadMore() // sem efeito
+        vm.loadMore() // no effect
         runCurrent()
         assertEquals(90, vm.state.value.loadedDays)
     }
 
     @Test
-    fun `apagar e desfazer repoe o mesmo instante e a mesma zona`() = runTest(dispatcher) {
+    fun `delete and undo restores the same instant and the same zone`() = runTest(dispatcher) {
         val tokyo = ZoneId.of("Asia/Tokyo")
         val instant = Instant.parse("2026-09-28T14:05:07.123Z")
         repo.logAt(instant, tokyo)
@@ -102,7 +102,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `adicionar retroactivo no passado grava na zona actual e no futuro e recusado`() = runTest(dispatcher) {
+    fun `backfilling in the past saves in the current zone and in the future is rejected`() = runTest(dispatcher) {
         val vm = newVm()
         val events = mutableListOf<HistoryEvent>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.events.collect { events += it } }
@@ -114,21 +114,21 @@ class HistoryViewModelTest {
         assertEquals(zone, added.zone)
         assertTrue(events.last() is HistoryEvent.Added)
 
-        vm.addPast(today, LocalTime.of(13, 33)) // 1 min no futuro
+        vm.addPast(today, LocalTime.of(13, 33)) // 1 min in the future
         runCurrent()
         assertEquals(HistoryEvent.Message("Não é possível registar no futuro"), events.last())
         assertEquals(1, repo.observeBetween(Instant.EPOCH, now.plusSeconds(3600)).first().size)
     }
 
     @Test
-    fun `validacao de futuro na fronteira`() {
+    fun `future validation at the boundary`() {
         assertEquals(now.minusSeconds(5), pastInstantOrNull(today, LocalTime.of(13, 32), zone, now))
         assertNull(pastInstantOrNull(today, LocalTime.of(13, 33), zone, now))
         assertNull(pastInstantOrNull(today.plusDays(1), LocalTime.of(0, 0), zone, now))
     }
 
     @Test
-    fun `BD vazia fica isEmpty sem paginas`() = runTest(dispatcher) {
+    fun `empty DB is isEmpty with no pages`() = runTest(dispatcher) {
         val s = newVm().state.value
         assertTrue(s.isEmpty)
         assertFalse(s.canLoadMore)
@@ -136,7 +136,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `exportar CSV escreve todos os registos e avisa com a contagem`() = runTest(dispatcher) {
+    fun `CSV export writes all events and reports the count`() = runTest(dispatcher) {
         repo.replaceAll(listOf(at(0, 9, 40), at(100, 8, 0)))
         val vm = HistoryViewModel(repo, appVersion = "0.3.0", io = dispatcher)
         val events = mutableListOf<HistoryEvent>()
@@ -153,7 +153,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `exportar JSON leva app_version e falha com mensagem se o destino nao abrir`() = runTest(dispatcher) {
+    fun `JSON export includes app_version and fails with a message if the destination cannot be opened`() = runTest(dispatcher) {
         repo.replaceAll(listOf(at(0, 9, 40)))
         val vm = HistoryViewModel(repo, appVersion = "0.3.0", io = dispatcher)
         val events = mutableListOf<HistoryEvent>()
@@ -171,7 +171,7 @@ class HistoryViewModelTest {
         assertEquals(HistoryEvent.Message("Falhou a exportação: destino indisponível"), events.last())
     }
 
-    // --- Importação (R6) ---
+    // --- Import (R6) ---
 
     private fun fixtureStream() = javaClass.classLoader!!.getResourceAsStream("sample-export-v1.json")!!
 
@@ -185,8 +185,8 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `importar - preparar mostra N novos e M existentes, confirmar insere e avisa`() = runTest(dispatcher) {
-        // Relógio do teste é 29-09 12:32Z; a fixture vai até 25-10 → usar um repo com relógio posterior.
+    fun `import - prepare shows N new and M existing, confirm inserts and reports`() = runTest(dispatcher) {
+        // The test clock is 29-09 12:32Z; the fixture runs until 25-10 → use a repo with a later clock.
         repo = SmokeRepository(FakeSmokeEventDao(), Clock.fixed(Instant.parse("2026-10-26T12:00:00Z"), zone))
         val (vm, events) = importVm()
         vm.prepareImport { fixtureStream() }
@@ -194,7 +194,7 @@ class HistoryViewModelTest {
         val pending = vm.state.value.pendingImport!!
         assertEquals(13, pending.new)
         assertEquals(0, pending.existing)
-        assertTrue(repo.allEvents().isEmpty()) // nada escrito antes de confirmar
+        assertTrue(repo.allEvents().isEmpty()) // nothing written before confirming
 
         vm.confirmImport()
         runCurrent()
@@ -202,7 +202,7 @@ class HistoryViewModelTest {
         assertEquals(13, repo.allEvents().size)
         assertEquals(HistoryEvent.Message("Importados 13 registos"), events.last())
 
-        // O mesmo ficheiro outra vez: nada de diálogo, só a mensagem.
+        // The same file again: no dialog, just the message.
         vm.prepareImport { fixtureStream() }
         runCurrent()
         assertNull(vm.state.value.pendingImport)
@@ -210,7 +210,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `importar - apagar 2 e importar mostra 2 novos e 11 existentes`() = runTest(dispatcher) {
+    fun `import - deleting 2 and importing shows 2 new and 11 existing`() = runTest(dispatcher) {
         repo = SmokeRepository(FakeSmokeEventDao(), Clock.fixed(Instant.parse("2026-10-26T12:00:00Z"), zone))
         val (vm, events) = importVm()
         vm.prepareImport { fixtureStream() }
@@ -230,7 +230,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `importar - cancelar nao escreve nada`() = runTest(dispatcher) {
+    fun `import - cancel writes nothing`() = runTest(dispatcher) {
         repo = SmokeRepository(FakeSmokeEventDao(), Clock.fixed(Instant.parse("2026-10-26T12:00:00Z"), zone))
         val (vm, _) = importVm()
         vm.prepareImport { fixtureStream() }
@@ -238,15 +238,15 @@ class HistoryViewModelTest {
         vm.cancelImport()
         runCurrent()
         assertNull(vm.state.value.pendingImport)
-        vm.confirmImport() // sem pendente: não faz nada
+        vm.confirmImport() // nothing pending: does nothing
         runCurrent()
         assertTrue(repo.allEvents().isEmpty())
     }
 
     @Test
-    fun `importar - ficheiro invalido da mensagem legivel com o indice e nao abre dialogo`() = runTest(dispatcher) {
+    fun `import - invalid file gives a readable message with the index and opens no dialog`() = runTest(dispatcher) {
         val (vm, events) = importVm()
-        // O relógio do teste é 29-09 12:32:05Z; o 2.º registo fica no futuro.
+        // The test clock is 29-09 12:32:05Z; the 2nd event is in the future.
         val text = """{"format":"cinzeiro-export","version":1,"exported_at":"2026-09-29T00:00:00Z","app_version":"0.6.0","count":2,
             "events":[{"id":1,"instant_utc":"2026-09-29T10:00:00Z","zone_id":"Europe/Lisbon","local_datetime":"x"},
                       {"id":2,"instant_utc":"2026-09-29T13:00:00Z","zone_id":"Europe/Lisbon","local_datetime":"x"}]}"""

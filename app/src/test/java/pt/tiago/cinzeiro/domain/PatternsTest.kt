@@ -9,7 +9,7 @@ import java.time.LocalDate
 class PatternsTest {
 
     @Test
-    fun `hourlyDistribution soma por hora local`() {
+    fun `hourlyDistribution sums by local hour`() {
         val events = listOf(
             event("2026-09-28T08:05"),
             event("2026-09-29T08:59"),
@@ -24,11 +24,11 @@ class PatternsTest {
     }
 
     @Test
-    fun `heatmap usa indice 0 para segunda e 6 para domingo`() {
+    fun `heatmap uses index 0 for Monday and 6 for Sunday`() {
         val events = listOf(
-            event("2026-09-28T09:00"), // segunda
-            event("2026-09-28T09:30"), // segunda
-            event("2026-10-04T22:00"), // domingo
+            event("2026-09-28T09:00"), // Monday
+            event("2026-09-28T09:30"), // Monday
+            event("2026-10-04T22:00"), // Sunday
         )
 
         val grid = weekdayHourHeatmap(events)
@@ -41,7 +41,7 @@ class PatternsTest {
     }
 
     @Test
-    fun `movingAverage devolve null nos 6 primeiros dias`() {
+    fun `movingAverage returns null for the first 6 days`() {
         val start = LocalDate.of(2026, 9, 1)
         val daily = (0 until 9).map { DayCount(start.plusDays(it.toLong()), it) } // 0..8
 
@@ -49,13 +49,13 @@ class PatternsTest {
 
         assertEquals(9, result.size)
         (0 until 6).forEach { assertNull(result[it]) }
-        assertEquals(3.0, result[6]!!, 1e-9) // média de 0..6
-        assertEquals(4.0, result[7]!!, 1e-9) // média de 1..7
-        assertEquals(5.0, result[8]!!, 1e-9) // média de 2..8
+        assertEquals(3.0, result[6]!!, 1e-9) // average of 0..6
+        assertEquals(4.0, result[7]!!, 1e-9) // average of 1..7
+        assertEquals(5.0, result[8]!!, 1e-9) // average of 2..8
     }
 
     @Test
-    fun `movingAverage respeita a janela pedida`() {
+    fun `movingAverage respects the requested window`() {
         val start = LocalDate.of(2026, 9, 1)
         val daily = listOf(4, 2, 6).mapIndexed { i, c -> DayCount(start.plusDays(i.toLong()), c) }
 

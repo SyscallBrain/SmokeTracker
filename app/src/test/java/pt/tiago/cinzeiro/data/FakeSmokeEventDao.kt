@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 
-/** DAO em memória para testes de ViewModel (sem Room). */
+/** In-memory DAO for ViewModel tests (no Room). */
 class FakeSmokeEventDao : SmokeEventDao {
     val rows = MutableStateFlow<List<SmokeEventEntity>>(emptyList())
     private var nextId = 1L

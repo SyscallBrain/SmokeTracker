@@ -13,8 +13,8 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * R4: duas escritas do log de diagnóstico → **um** ficheiro com duas linhas (a 0.5.0 criava um
- * ficheiro por linha porque o MediaStore renomeava `.log` para `.log.txt`).
+ * R4: two writes to the diagnostic log → **one** file with two lines (0.5.0 created one
+ * file per line because MediaStore renamed `.log` to `.log.txt`).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
@@ -26,9 +26,9 @@ class CrashLogFileTest {
         app.applicationInfo.flags = app.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
     }
 
-    /** Android 8–9: ficheiro em Android/data/<pkg>/files/crashlogs/. */
+    /** Android 8–9: file in Android/data/<pkg>/files/crashlogs/. */
     @Test @Config(sdk = [28])
-    fun duas_escritas_reutilizam_o_mesmo_ficheiro_em_api_28() {
+    fun two_writes_reuse_the_same_file_on_api_28() {
         CrashLog.appendLines(app, "x-feedback.txt", listOf("a"), 200)
         CrashLog.appendLines(app, "x-feedback.txt", listOf("b"), 200)
         val dir = File(app.getExternalFilesDir(null), "crashlogs")
@@ -36,12 +36,12 @@ class CrashLogFileTest {
         assertEquals("a\nb\n", File(dir, "x-feedback.txt").readText())
     }
 
-    // Android 10+ (MediaStore): não testável aqui — no Robolectric 4.17 (SDK 36) duas inserções em
-    // MediaStore.Downloads seguidas de query por RELATIVE_PATH devolvem 0 linhas (experimentado na
-    // R4). O que causava o bug (nome .log renomeado para .log.txt) fica coberto pelo teste abaixo.
+    // Android 10+ (MediaStore): not testable here — on Robolectric 4.17 (SDK 36) two inserts into
+    // MediaStore.Downloads followed by a query by RELATIVE_PATH return 0 rows (tried in
+    // R4). What caused the bug (.log name renamed to .log.txt) is covered by the test below.
 
     @Test @Config(sdk = [36])
-    fun nome_que_nao_seja_txt_e_recusado() {
+    fun non_txt_name_is_rejected() {
         assertThrows(IllegalArgumentException::class.java) {
             CrashLog.appendLines(app, "x-feedback.log", listOf("a"), 200)
         }

@@ -22,8 +22,8 @@ import pt.tiago.cinzeiro.App
 import pt.tiago.cinzeiro.R
 
 /**
- * R5: o «+1» do widget (broadcast `ACTION_LOG` para o próprio receiver) grava um registo e entrega
- * `RemoteViews` novas com a contagem actualizada via `AppWidgetManager.updateAppWidget`.
+ * R5: the widget's "+1" (broadcast `ACTION_LOG` to the receiver itself) logs an event and delivers
+ * new `RemoteViews` with the updated count via `AppWidgetManager.updateAppWidget`.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], application = App::class)
@@ -34,7 +34,7 @@ class CinzeiroWidgetReceiverTest {
 
     @Before fun setUp() {
         app = ApplicationProvider.getApplicationContext()
-        // onEnabled agenda o MidnightWorker: WorkManager síncrono em teste (o da app é o por omissão).
+        // onEnabled schedules the MidnightWorker: synchronous WorkManager in tests (the app uses the default one).
         if (!WorkManager.isInitialized()) {
             WorkManager.initialize(app, Configuration.Builder().setExecutor { it.run() }.build())
         }
@@ -55,7 +55,7 @@ class CinzeiroWidgetReceiverTest {
         repo.countBetween(from, to)
     }
 
-    /** O trabalho corre em `appScope` (Default) e o Toast passa pela main looper: avança ambos. */
+    /** The work runs on `appScope` (Default) and the Toast goes through the main looper: advance both. */
     private fun waitUntil(what: String, cond: () -> Boolean) {
         val deadline = System.currentTimeMillis() + 10_000
         while (System.currentTimeMillis() < deadline) {
@@ -71,11 +71,11 @@ class CinzeiroWidgetReceiverTest {
         shadowManager.getAppWidgetProviderFor(widgetId).onReceive(app, intent)
     }
 
-    @Test fun widget_colocado_e_encontrado_pelo_updater() {
+    @Test fun placed_widget_is_found_by_the_updater() {
         assertArrayEquals(intArrayOf(widgetId), WidgetUpdater.widgetIds(app))
     }
 
-    @Test fun mais_um_insere_registo_e_redesenha_com_a_contagem_nova() {
+    @Test fun plus_one_inserts_an_event_and_redraws_with_the_new_count() {
         assertEquals(0, dbCount())
 
         tapPlusOne()
@@ -87,7 +87,7 @@ class CinzeiroWidgetReceiverTest {
         assertEquals(2, dbCount())
     }
 
-    @Test fun botao_mais_um_tem_descricao_de_acessibilidade() {
+    @Test fun plus_one_button_has_an_accessibility_description() {
         val button = shadowManager.getViewFor(widgetId).findViewById<TextView>(R.id.widget_log)
         assertEquals("Registar um cigarro", button.contentDescription)
         assertEquals("+1", button.text.toString())

@@ -17,7 +17,7 @@ class SyntheticDataTest {
     private val clock = Clock.fixed(now, zone)
 
     @Test
-    fun `gera 90 dias, nenhum no futuro, ordenado e com picos nas horas esperadas`() {
+    fun `generates 90 days, none in the future, sorted and with peaks at the expected hours`() {
         val data = SyntheticData.generate(clock, 90)
         val events = data.map { SmokeEvent(it.first, it.second) }
 
@@ -34,7 +34,7 @@ class SyntheticDataTest {
     }
 
     @Test
-    fun `semente fixa da os mesmos dados`() {
+    fun `fixed seed gives the same data`() {
         assertEquals(SyntheticData.generate(clock, 30), SyntheticData.generate(clock, 30))
     }
 }
