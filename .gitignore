@@ -28,3 +28,6 @@ out/
 
 # Logs de build locais
 *.log
+
+# Crash logs copiados do telemóvel
+crashlogs/
