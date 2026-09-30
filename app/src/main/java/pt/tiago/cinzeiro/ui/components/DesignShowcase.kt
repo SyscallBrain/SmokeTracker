@@ -31,8 +31,8 @@ import pt.tiago.cinzeiro.ui.theme.Dimens
 import pt.tiago.cinzeiro.ui.theme.tabular
 
 /**
- * Catálogo do sistema de design (T1): paleta + todos os componentes base, para o Tiago comparar
- * no telemóvel com a maqueta (não há capturas por adb). Só acessível no APK debug.
+ * Design system catalog (T1): palette + all base components, to compare on the phone against
+ * the mockup (no adb screenshots available). Only reachable in the debug APK.
  */
 @Composable
 fun DesignShowcase(modifier: Modifier = Modifier) {

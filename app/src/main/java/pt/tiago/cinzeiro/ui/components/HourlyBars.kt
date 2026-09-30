@@ -31,9 +31,9 @@ import kotlin.math.ceil
 import kotlin.math.max
 
 /**
- * 24 colunas (0–23 h), hora actual em `primary`, restantes em `secondary`; grelha horizontal em
- * `outline` a 50 %; eixos em `onSurfaceVariant` `labelSmall`. API confirmada nas fontes da Vico
- * 3.3.1 (`compose-android-3.3.1-sources.jar`) e no guia estável.
+ * 24 columns (0–23 h), current hour in `primary`, the rest in `secondary`; horizontal grid in
+ * `outline` at 50 %; axes in `onSurfaceVariant` `labelSmall`. API checked against the Vico
+ * 3.3.1 sources (`compose-android-3.3.1-sources.jar`) and the stable guide.
  */
 @Composable
 fun HourlyBars(hourly: List<Int>, currentHour: Int, modifier: Modifier = Modifier) {
@@ -55,7 +55,7 @@ fun HourlyBars(hourly: List<Int>, currentHour: Int, modifier: Modifier = Modifie
         }
     }
 
-    // Eixo Y em inteiros: até 4 marcas.
+    // Integer Y axis: up to 4 ticks.
     val maxY = max(2, hourly.maxOrNull() ?: 0)
     val step = max(1.0, ceil(maxY / 4.0))
     val topY = ceil(maxY / step) * step

@@ -25,13 +25,13 @@ import pt.tiago.cinzeiro.ui.format.Formats
 import pt.tiago.cinzeiro.ui.theme.CinzeiroTheme
 import kotlin.math.sqrt
 
-/** Intensidade 0..1 de uma célula; 0 fica na cor de fundo. Raiz quadrada: realça as células fracas. */
+/** Cell intensity 0..1; 0 stays at the background colour. Square root: brings out the faint cells. */
 fun heatLevel(count: Int, max: Int): Float =
     if (max <= 0 || count <= 0) 0f else sqrt(count.toFloat() / max).coerceIn(0f, 1f)
 
 /**
- * Heatmap 7×24 em Canvas: linha 0 = segunda (rótulos S T Q Q S S D), colunas = horas 0..23 com
- * rótulos em 0/6/12/18. Cor da célula = interpolação `surfaceVariant` → `primary`.
+ * 7×24 heatmap on a Canvas: row 0 = Monday (labels S T Q Q S S D), columns = hours 0..23 with
+ * labels at 0/6/12/18. Cell colour = interpolation `surfaceVariant` → `primary`.
  */
 @Composable
 fun WeekdayHourHeatmap(grid: List<List<Int>>, modifier: Modifier = Modifier) {
@@ -82,7 +82,7 @@ fun WeekdayHourHeatmap(grid: List<List<Int>>, modifier: Modifier = Modifier) {
                 }
             }
         }
-        // Horas 0/6/12/18 alinhadas com o início da respectiva coluna.
+        // Hours 0/6/12/18 aligned with the start of their column.
         Row(Modifier.padding(start = labelWidth, top = 2.dp)) {
             listOf("0", "6", "12", "18").forEach { h ->
                 Text(

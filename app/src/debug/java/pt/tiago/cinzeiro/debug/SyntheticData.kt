@@ -7,12 +7,12 @@ import java.time.ZoneId
 import kotlin.random.Random
 
 /**
- * Dados sintéticos para desenvolver gráficos: [days] dias até agora (inclui hoje até à hora
- * actual), 8–18 cigarros por dia, com picos ao acordar, depois de almoço e ao fim do dia.
- * Semente fixa → os mesmos dados em cada geração (o ecrã é comparável entre builds).
+ * Synthetic data for developing charts: [days] days up to now (includes today up to the current
+ * hour), 8–18 cigarettes per day, with peaks on waking, after lunch and in the evening.
+ * Fixed seed → the same data on every generation (the screen is comparable across builds).
  */
 object SyntheticData {
-    /** Peso relativo de cada hora 0..23 (madrugada ~0, picos 8 h, 13–14 h, 21–22 h). */
+    /** Relative weight of each hour 0..23 (small hours ~0, peaks at 8 h, 13–14 h, 21–22 h). */
     val HOUR_WEIGHTS = intArrayOf(
         1, 0, 0, 0, 0, 0, 1, 4, 9, 6, 5, 5,
         6, 9, 8, 5, 5, 6, 7, 6, 7, 9, 8, 4,
@@ -27,7 +27,7 @@ object SyntheticData {
         val out = ArrayList<Pair<Instant, ZoneId>>()
         for (d in days - 1 downTo 0) {
             val date = today.minusDays(d.toLong())
-            // Fim-de-semana um pouco mais; tendência ligeira de descida ao longo do período.
+            // Slightly more at weekends; slight downward trend over the period.
             val weekend = date.dayOfWeek.value >= 6
             val base = 14 - (days - 1 - d) * 3 / days.coerceAtLeast(1) + if (weekend) 2 else 0
             val n = (base + rnd.nextInt(-4, 5)).coerceIn(8, 18)

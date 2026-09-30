@@ -1,4 +1,4 @@
-// AGP 9 tem Kotlin integrado (built-in Kotlin): não se aplica org.jetbrains.kotlin.android.
+// AGP 9 has built-in Kotlin: org.jetbrains.kotlin.android is not applied.
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.compose) apply false

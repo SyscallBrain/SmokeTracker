@@ -11,19 +11,19 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
 import java.time.Clock
 
-/** DI manual (ADR): um contentor por processo, criado em `App.onCreate`. */
+/** Manual DI (ADR): one container per process, created in `App.onCreate`. */
 class AppContainer(private val context: Context) {
     val clock: Clock = SystemZoneClock()
     val database: AppDatabase by lazy { AppDatabase.build(context) }
     val repository: SmokeRepository by lazy { SmokeRepository(database.smokeEventDao(), clock) }
 
-    /** Única instância do DataStore das Definições no processo (app e widget). */
+    /** Single instance of the Settings DataStore in the process (app and widget). */
     val settings: SettingsRepository by lazy {
         SettingsRepository(
             PreferenceDataStoreFactory.create { context.preferencesDataStoreFile(SettingsRepository.FILE_NAME) },
         )
     }
 
-    /** `null` em release: o código do seed só existe em `src/debug`. */
+    /** `null` in release: the seed code only exists in `src/debug`. */
     val debugTools: DebugTools? by lazy { createDebugTools(repository, clock) }
 }

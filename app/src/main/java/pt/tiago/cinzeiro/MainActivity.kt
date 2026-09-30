@@ -21,10 +21,10 @@ import pt.tiago.cinzeiro.widget.WidgetUpdater
 class MainActivity : ComponentActivity() {
 
     private val notificationPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* estado lido nas Definições */ }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* state read in Settings */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Barras do sistema sempre escuras (ícones claros), independentemente do tema do telemóvel.
+        // System bars always dark (light icons), regardless of the phone's theme.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
@@ -38,8 +38,8 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * R4: rede de segurança ao sair da app — volta a empurrar o estado para o widget. Corre no
-     * `appScope` (não no `lifecycleScope`, que pode ser cancelado logo a seguir ao `onStop`).
+     * R4: safety net when leaving the app — pushes the state to the widget again. Runs in
+     * `appScope` (not in `lifecycleScope`, which may be cancelled right after `onStop`).
      */
     override fun onStop() {
         super.onStop()
@@ -48,9 +48,9 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * R3.2: sem `POST_NOTIFICATIONS` (Android 13+) o sistema descarta o Toast do +1 do widget
-     * (`NotificationManagerService.checkCanEnqueueToast`). Pede-se uma única vez, no primeiro
-     * arranque, se «Mostrar mensagem» estiver ligado; depois só pelas Definições.
+     * R3.2: without `POST_NOTIFICATIONS` (Android 13+) the system drops the widget's +1 Toast
+     * (`NotificationManagerService.checkCanEnqueueToast`). Requested only once, on first launch,
+     * if "Mostrar mensagem" is on; afterwards only via Settings.
      */
     private fun askNotificationsOnce() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return

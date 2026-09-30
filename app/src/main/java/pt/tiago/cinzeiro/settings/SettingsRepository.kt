@@ -11,9 +11,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
- * Definições do utilizador em `DataStore<Preferences>` (ficheiro `settings.preferences_pb`).
- * Uma instância por processo (o DataStore não admite duas sobre o mesmo ficheiro): criada no
- * `AppContainer` e usada pela app e pelo `LogCigaretteAction` do widget.
+ * User settings in `DataStore<Preferences>` (file `settings.preferences_pb`).
+ * One instance per process (DataStore does not allow two over the same file): created in
+ * `AppContainer` and used by the app and by the widget's `LogCigaretteAction`.
  */
 class SettingsRepository(private val store: DataStore<Preferences>) {
 
@@ -25,7 +25,7 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
         )
     }
 
-    /** Quantas vezes a app já mostrou o diálogo de `POST_NOTIFICATIONS`. */
+    /** How many times the app has already shown the `POST_NOTIFICATIONS` dialog. */
     val notificationRequests: Flow<Int> = store.data.map { it[NOTIFICATION_REQUESTS] ?: 0 }
 
     suspend fun current(): Settings = settings.first()

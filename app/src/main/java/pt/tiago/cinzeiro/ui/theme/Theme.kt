@@ -8,7 +8,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-/** Sempre escuro (ADR §1): sem tema claro, sem dynamic color. */
+/** Always dark (ADR §1): no light theme, no dynamic color. */
 private val CinzeiroColors = darkColorScheme(
     primary = Primary,
     onPrimary = OnPrimary,
@@ -26,7 +26,7 @@ private val CinzeiroColors = darkColorScheme(
     outlineVariant = Outline,
     error = Error,
     onError = Background,
-    // Superfícies M3 derivadas (barra de navegação, folhas, diálogos) = surface; sem tonalidade.
+    // Derived M3 surfaces (navigation bar, sheets, dialogs) = surface; no tonal tint.
     surfaceContainerLowest = Background,
     surfaceContainerLow = Surface,
     surfaceContainer = Surface,
@@ -40,7 +40,7 @@ private val CinzeiroColors = darkColorScheme(
     inversePrimary = Primary,
 )
 
-/** Cores fora do esquema M3. */
+/** Colours outside the M3 scheme. */
 @Immutable
 data class ExtendedColors(val good: Color)
 
@@ -57,7 +57,7 @@ fun CinzeiroTheme(content: @Composable () -> Unit) {
     }
 }
 
-/** Acesso: `CinzeiroTheme.extended.good`. */
+/** Access: `CinzeiroTheme.extended.good`. */
 object CinzeiroTheme {
     val extended: ExtendedColors
         @Composable get() = LocalExtendedColors.current

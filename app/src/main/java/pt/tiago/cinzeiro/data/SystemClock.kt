@@ -5,9 +5,9 @@ import java.time.Instant
 import java.time.ZoneId
 
 /**
- * Relógio do sistema cuja zona é lida **em cada chamada**: se o Tiago viajar e o telemóvel
- * mudar de fuso, o registo seguinte fica com a zona nova (o `Clock.systemDefaultZone()`
- * congelava a zona do arranque da app).
+ * System clock whose zone is read **on every call**: if Tiago travels and the phone changes
+ * time zone, the next entry gets the new zone (`Clock.systemDefaultZone()` would freeze the
+ * zone from app startup).
  */
 class SystemZoneClock : Clock() {
     override fun getZone(): ZoneId = ZoneId.systemDefault()

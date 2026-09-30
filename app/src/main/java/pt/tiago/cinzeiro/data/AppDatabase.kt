@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-/** Esquema exportado para `app/schemas/` (versionado no git; base das futuras migrações). */
+/** Schema exported to `app/schemas/` (versioned in git; basis for future migrations). */
 @Database(entities = [SmokeEventEntity::class], version = 1, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun smokeEventDao(): SmokeEventDao

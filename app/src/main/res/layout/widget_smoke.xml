@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget 2×1 (R5, RemoteViews directos): só LinearLayout/TextView, suportados por RemoteViews.
-     Mesma aparência da 0.5.1 (Glance). Os textos são preenchidos por WidgetViews.build. -->
+<!-- 2×1 widget (R5, direct RemoteViews): only LinearLayout/TextView, supported by RemoteViews.
+     Same look as 0.5.1 (Glance). Texts are filled in by WidgetViews.build. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@android:id/background"

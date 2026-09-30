@@ -45,10 +45,10 @@ import kotlin.math.ceil
 import kotlin.math.max
 
 /**
- * Barras por dia (7 d/30 d) ou por semana (90 d/1 a), com a última (hoje / semana actual) em
- * `primary` e as restantes em `secondary`; média móvel 7 d em `tertiary` sobreposta quando
- * [BarsData.movingAvg] não está vazia. Tocar/premir uma barra mostra «valor · data» (marcador Vico).
- * API confirmada nas fontes da Vico 3.3.1 (`columnModel`/`lineModel`, não os obsoletos `*Series`).
+ * Bars per day (7 d/30 d) or per week (90 d/1 y), with the last one (today / current week) in
+ * `primary` and the rest in `secondary`; 7-day moving average in `tertiary` overlaid when
+ * [BarsData.movingAvg] is not empty. Tapping/pressing a bar shows "value · date" (Vico marker).
+ * API checked against the Vico 3.3.1 sources (`columnModel`/`lineModel`, not the deprecated `*Series`).
  */
 @Composable
 fun DailyBarsChart(data: BarsData, modifier: Modifier = Modifier) {
@@ -82,7 +82,7 @@ fun DailyBarsChart(data: BarsData, modifier: Modifier = Modifier) {
         }
     }
 
-    // Eixo Y em inteiros, partilhado entre barras e linha: até 4 marcas.
+    // Integer Y axis, shared by bars and line: up to 4 ticks.
     val maxValue = max(data.values.maxOrNull() ?: 0, data.movingAvg.maxOfOrNull { ceil(it.second).toInt() } ?: 0)
     val maxY = max(2, maxValue)
     val step = max(1.0, ceil(maxY / 4.0))

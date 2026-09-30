@@ -1,6 +1,6 @@
 package pt.tiago.cinzeiro.settings
 
-/** Tipo de vibração do +1 (app e widget). Padrões explícitos em [VibrationPatterns]. */
+/** Vibration type for the +1 (app and widget). Explicit patterns in [VibrationPatterns]. */
 enum class VibrationType(val label: String) {
     SHORT("Curta"),
     DOUBLE("Dupla"),
@@ -8,7 +8,7 @@ enum class VibrationType(val label: String) {
     ;
 
     companion object {
-        /** Valor gravado desconhecido (versão futura, ficheiro corrompido) → omissão. */
+        /** Unknown stored value (future version, corrupted file) → default. */
         fun fromStored(value: String?): VibrationType = entries.firstOrNull { it.name == value } ?: SHORT
     }
 }
@@ -16,6 +16,6 @@ enum class VibrationType(val label: String) {
 data class Settings(
     val vibrate: Boolean = true,
     val vibrationType: VibrationType = VibrationType.SHORT,
-    /** Só o Toast do +1 do widget; o snackbar da app tem «Desfazer» e mostra-se sempre. */
+    /** Only the widget's +1 Toast; the app's snackbar has "Desfazer" and is always shown. */
     val showMessage: Boolean = true,
 )

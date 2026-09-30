@@ -18,8 +18,8 @@ import pt.tiago.cinzeiro.ui.theme.Dimens
 import pt.tiago.cinzeiro.ui.theme.tabular
 
 /**
- * Cartão de indicador. [deltaPct] > 0 = mais cigarros → ↑ em `error`; < 0 → ↓ em verde.
- * Sem delta, [caption] (se houver) aparece em `onSurfaceVariant`.
+ * Metric card. [deltaPct] > 0 = more cigarettes → ↑ in `error`; < 0 → ↓ in green.
+ * Without a delta, [caption] (if any) is shown in `onSurfaceVariant`.
  */
 @Composable
 fun StatCard(

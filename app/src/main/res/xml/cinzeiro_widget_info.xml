@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 2×1: contagem de hoje, «último HH:MM» e «+1». Sem updatePeriodMillis: actualiza por evento e à meia-noite (WorkManager).
-     R5: RemoteViews directos (layout/widget_smoke), sem Glance. Mesmo ficheiro e mesmo receiver da 0.5.1,
-     para o widget já colocado sobreviver à actualização. -->
+<!-- 2×1: today's count, "último HH:MM" and "+1". No updatePeriodMillis: updates on each event and at midnight (WorkManager).
+     R5: direct RemoteViews (layout/widget_smoke), no Glance. Same file and same receiver as 0.5.1,
+     so the widget already placed survives the update. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/widget_description"
     android:initialLayout="@layout/widget_smoke"

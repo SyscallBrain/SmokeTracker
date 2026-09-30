@@ -24,7 +24,7 @@ val Period.label: String
         Period.Y1 -> "1 a"
     }
 
-/** 7 d · 30 d · 90 d · 1 a; selecção em `secondary` sobre fundo translúcido. */
+/** 7 d · 30 d · 90 d · 1 y; selection in `secondary` on a translucent background. */
 @Composable
 fun PeriodSelector(selected: Period, onSelect: (Period) -> Unit, modifier: Modifier = Modifier) {
     val cs = MaterialTheme.colorScheme

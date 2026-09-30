@@ -12,29 +12,29 @@ import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 
 /**
- * Um problema no ficheiro. [index] é a posição (base 0) em `events`, ou `null` se o erro for do
- * documento (JSON inválido, `format`, `version`, `count`).
+ * A problem in the file. [index] is the position (0-based) in `events`, or `null` if the error
+ * concerns the document (invalid JSON, `format`, `version`, `count`).
  */
 data class ImportError(val index: Int?, val message: String) {
-    /** Texto para o utilizador; o registo é numerado a partir de 1 («registo n.º 3»). */
+    /** User-facing text; the entry is numbered from 1 ("registo n.º 3"). */
     fun describe(): String = if (index == null) message else "registo n.º ${index + 1}: $message"
 }
 
 /**
- * Resultado da leitura. **Tudo ou nada:** se [errors] não estiver vazio, [events] vem vazio.
- * [events] vêm pela ordem do ficheiro, instantes truncados ao milissegundo (a precisão da BD),
- * sem os `id` do ficheiro (a BD atribui novos).
+ * Result of the read. **All or nothing:** if [errors] is not empty, [events] is empty.
+ * [events] come in file order, instants truncated to the millisecond (the DB precision),
+ * without the file's `id`s (the DB assigns new ones).
  */
 data class ImportResult(val events: List<SmokeEvent>, val errors: List<ImportError>) {
     val ok: Boolean get() = errors.isEmpty()
 }
 
 /**
- * Inverso do [JsonExporter] (ADR §Decisão 10, plano R6). Kotlin puro: testável na JVM.
+ * Inverse of [JsonExporter] (ADR decision 10, plan R6). Pure Kotlin: testable on the JVM.
  *
- * Valida o ficheiro inteiro antes de devolver qualquer evento: `format == cinzeiro-export`,
- * `version == 1`, `count == events.size`, e cada evento com `instant_utc` ISO-8601 válido, não
- * futuro face a [now], e `zone_id` IANA conhecido. `local_datetime` é informativo e ignorado.
+ * Validates the whole file before returning any event: `format == cinzeiro-export`,
+ * `version == 1`, `count == events.size`, and each event with a valid ISO-8601 `instant_utc`, not
+ * in the future relative to [now], and a known IANA `zone_id`. `local_datetime` is informational and ignored.
  */
 object JsonImporter {
     fun read(text: String, now: Instant): ImportResult {

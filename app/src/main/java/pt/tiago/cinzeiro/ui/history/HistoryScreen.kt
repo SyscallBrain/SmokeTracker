@@ -74,7 +74,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
 
-/** Mesma janela do snackbar do ecrã Hoje (contrato de design: ~5 s). */
+/** Same snackbar window as the Today screen (design contract: ~5 s). */
 private const val UNDO_WINDOW_MS = 5_000L
 
 @Composable
@@ -104,7 +104,7 @@ fun HistoryRoute(viewModel: HistoryViewModel, snackbarHostState: SnackbarHostSta
         }
     }
     val context = LocalContext.current
-    // Um launcher por tipo MIME (o contrato CreateDocument fixa o MIME na criação).
+    // One launcher per MIME type (the CreateDocument contract fixes the MIME at creation).
     val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(ExportFormat.CSV.mime)) { uri ->
         if (uri != null) viewModel.export(ExportFormat.CSV) { context.contentResolver.openOutputStream(uri, "wt") }
     }
@@ -153,7 +153,7 @@ fun HistoryScreen(
     var exporting by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
-    // Paginação: ao chegar a 5 itens do fim, pede mais 30 dias.
+    // Paging: when within 5 items of the end, request 30 more days.
     val nearEnd by remember {
         derivedStateOf {
             val info = listState.layoutInfo
@@ -248,7 +248,7 @@ fun HistoryScreen(
     }
 }
 
-/** «Importar N registos (M já existem e serão ignorados)?» — só aparece com N ≥ 1. */
+/** "Import N entries (M already exist and will be skipped)?" — only shown when N ≥ 1. */
 @Composable
 private fun ImportConfirmDialog(pending: PendingImport, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     val n = pending.new
@@ -332,8 +332,8 @@ private fun EventRow(ev: LoggedEvent, onDelete: (LoggedEvent) -> Unit) {
 }
 
 /**
- * Registo retroactivo: DatePicker M3 (dias futuros não seleccionáveis) → TimePicker M3 24 h.
- * «Guardar» fica desactivado se a combinação cair no futuro; o repositório volta a recusar.
+ * Retroactive entry: M3 DatePicker (future days not selectable) → M3 TimePicker, 24 h.
+ * "Save" is disabled if the combination falls in the future; the repository rejects it again.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

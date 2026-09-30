@@ -11,11 +11,11 @@ import java.time.Instant
 import java.time.ZoneId
 
 /**
- * Fonte de verdade dos registos. O relógio é injectado (testes com `Clock.fixed`).
+ * Source of truth for entries. The clock is injected (tests use `Clock.fixed`).
  *
- * [changes] emite depois de cada inserção/remoção feita por este repositório — é o gancho
- * para quem vive fora do Compose (o widget do T8) se actualizar. Os ecrãs usam os `observe*`,
- * que o Room já reemite quando a tabela muda.
+ * [changes] emits after every insert/delete made by this repository — it is the hook for
+ * whatever lives outside Compose (the T8 widget) to update itself. Screens use the `observe*`
+ * functions, which Room already re-emits when the table changes.
  */
 class SmokeRepository(
     private val dao: SmokeEventDao,
@@ -33,26 +33,26 @@ class SmokeRepository(
     fun now(): Instant = clock.instant()
     fun zone(): ZoneId = clock.zone
 
-    /** Regista um cigarro agora, na zona actual. Devolve o id inserido (para «Desfazer»). */
+    /** Logs a cigarette now, in the current zone. Returns the inserted id (for "Desfazer"). */
     suspend fun logNow(): Long = insert(clock.instant(), clock.zone)
 
     /**
-     * Registo retroactivo.
-     * @throws IllegalArgumentException se [instant] estiver no futuro face ao relógio.
+     * Retroactive entry.
+     * @throws IllegalArgumentException if [instant] is in the future relative to the clock.
      */
     suspend fun logAt(instant: Instant, zone: ZoneId): Long {
         require(!instant.isAfter(clock.instant())) { "Registo no futuro: $instant" }
         return insert(instant, zone)
     }
 
-    /** Apaga o registo com este id (não «o último»). Devolve true se existia. */
+    /** Deletes the entry with this id (not "the latest"). Returns true if it existed. */
     suspend fun delete(id: Long): Boolean {
         val removed = dao.deleteById(id) > 0
         if (removed) _changes.tryEmit(Change.Deleted(id))
         return removed
     }
 
-    /** Registos em `[from, to)`, ordenados por instante. */
+    /** Entries in `[from, to)`, ordered by instant. */
     fun observeBetween(from: Instant, to: Instant): Flow<List<LoggedEvent>> =
         dao.observeBetween(from.toEpochMilli(), to.toEpochMilli()).map { list -> list.map { it.toLogged() } }
 
@@ -62,20 +62,20 @@ class SmokeRepository(
 
     suspend fun firstEventInstant(): Instant? = dao.firstEventMs()?.let(Instant::ofEpochMilli)
 
-    /** Contagem em `[from, to)` (para o widget). */
+    /** Count in `[from, to)` (for the widget). */
     suspend fun countBetween(from: Instant, to: Instant): Int =
         dao.countBetween(from.toEpochMilli(), to.toEpochMilli())
 
-    /** Último registo, leitura única (widget, R4). */
+    /** Latest entry, one-shot read (widget, R4). */
     suspend fun lastEvent(): LoggedEvent? = dao.last()?.toLogged()
 
-    /** Todos os registos, ordenados por instante (e id), para exportar. */
+    /** All entries, ordered by instant (and id), for export. */
     suspend fun allEvents(): List<LoggedEvent> = dao.all().map { it.toLogged() }
 
-    /** Quantos dos [events] seriam novos e quantos já existem (mesmo instante ao ms e mesma zona). */
+    /** How many of the [events] would be new and how many already exist (same instant to the ms and same zone). */
     data class ImportPreview(val new: Int, val existing: Int)
 
-    /** Pré-visualização da importação (diálogo de confirmação); não escreve nada. */
+    /** Import preview (confirmation dialog); writes nothing. */
     suspend fun previewImport(events: List<SmokeEvent>): ImportPreview {
         if (events.isEmpty()) return ImportPreview(0, 0)
         val ms = events.map { it.instant.toEpochMilli() }
@@ -85,9 +85,9 @@ class SmokeRepository(
     }
 
     /**
-     * Importa os [events] que ainda não existem, numa única transacção (tudo ou nada). Devolve o n.º
-     * inserido. [changes] emite **uma** vez ([Change.Bulk]) no fim, e só se entrou alguma coisa.
-     * @throws IllegalArgumentException se algum evento estiver no futuro (nada é inserido).
+     * Imports the [events] that do not exist yet, in a single transaction (all or nothing). Returns the
+     * number inserted. [changes] emits **once** ([Change.Bulk]) at the end, and only if something was added.
+     * @throws IllegalArgumentException if any event is in the future (nothing is inserted).
      */
     suspend fun importEvents(events: List<SmokeEvent>): Int {
         val now = clock.instant()
@@ -97,7 +97,7 @@ class SmokeRepository(
         return inserted
     }
 
-    /** Só para as ferramentas de debug (seed / apagar tudo). */
+    /** Only for the debug tools (seed / delete all). */
     suspend fun replaceAll(events: List<Pair<Instant, ZoneId>>) {
         dao.deleteAll()
         if (events.isNotEmpty()) {

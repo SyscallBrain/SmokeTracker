@@ -3,14 +3,14 @@ package pt.tiago.cinzeiro.domain.export
 import java.io.Writer
 
 /**
- * CSV RFC 4180, UTF-8 sem BOM (a codificação é de quem abre o `Writer`), separador `,`, fim de
- * linha `\n`. Os campos não têm texto livre (números, ISO-8601, ids de zona IANA) → sem *quoting*
- * nem risco de injecção de fórmulas.
+ * RFC 4180 CSV, UTF-8 without BOM (encoding is up to whoever opens the `Writer`), separator `,`,
+ * line ending `\n`. Fields contain no free text (numbers, ISO-8601, IANA zone ids) → no *quoting*
+ * and no risk of formula injection.
  */
 object CsvExporter {
     const val HEADER = "id,instant_utc,zone_id,local_datetime"
 
-    /** Escreve cabeçalho + [events] pela ordem recebida; devolve o n.º de linhas de dados. */
+    /** Writes header + [events] in the order received; returns the number of data rows. */
     fun write(events: List<ExportEvent>, out: Writer): Int {
         out.write(HEADER)
         out.write("\n")

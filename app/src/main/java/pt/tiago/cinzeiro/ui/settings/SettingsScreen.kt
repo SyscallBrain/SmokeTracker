@@ -54,7 +54,7 @@ import pt.tiago.cinzeiro.ui.components.SectionHeader
 import pt.tiago.cinzeiro.ui.theme.CinzeiroTheme
 import pt.tiago.cinzeiro.ui.theme.Dimens
 
-/** A partir de quantos pedidos recusados o sistema já não mostra o diálogo (Android 11+). */
+/** Number of denied requests after which the system stops showing the dialog (Android 11+). */
 private const val MAX_PERMISSION_DIALOGS = 2
 
 @Composable

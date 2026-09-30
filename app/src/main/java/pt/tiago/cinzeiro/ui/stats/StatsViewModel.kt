@@ -31,12 +31,12 @@ import pt.tiago.cinzeiro.domain.weeklyCounts
 import java.time.LocalDate
 import java.time.ZoneId
 
-/** Barras por dia em 7 d/30 d; por semana (a começar à segunda) em 90 d/1 a. */
+/** Bars per day in 7 d/30 d; per week (starting on Monday) in 90 d/1 y. */
 enum class Granularity { DAILY, WEEKLY }
 
 /**
- * Dados do gráfico de barras. [dates] = dia (DAILY) ou segunda-feira da semana (WEEKLY), com o
- * mesmo índice que [values]. [movingAvg] = pares (índice da barra, média móvel 7 d), só em 30 d.
+ * Bar chart data. [dates] = day (DAILY) or the week's Monday (WEEKLY), with the same index as
+ * [values]. [movingAvg] = pairs (bar index, 7-day moving average), only in 30 d.
  */
 data class BarsData(
     val granularity: Granularity,
@@ -52,16 +52,16 @@ data class StatsUiState(
     val today: LocalDate? = null,
     val summary: Summary? = null,
     val bars: BarsData? = null,
-    /** Soma por hora local (0..23) dos eventos do período. */
+    /** Sum per local hour (0..23) of the period's events. */
     val hourly: List<Int> = List(24) { 0 },
-    /** Dia da semana (0 = segunda) × hora, eventos do período. */
+    /** Weekday (0 = Monday) × hour, the period's events. */
     val heatmap: List<List<Int>> = List(7) { List(24) { 0 } },
     val currentHour: Int = 0,
 )
 
 /**
- * Cálculo puro do ecrã (testável sem Android): [events] deve cobrir pelo menos o período anterior
- * (para o `deltaPct`) e os 6 dias antes do início (para a média móvel).
+ * Pure screen computation (testable without Android): [events] must cover at least the previous
+ * period (for `deltaPct`) and the 6 days before the start (for the moving average).
  */
 fun buildStats(
     events: List<SmokeEvent>,
@@ -84,8 +84,8 @@ fun buildStats(
                 movingAvg = if (period == Period.D30) movingAverageBars(events, firstEventDate, start, today) else emptyList(),
             )
         }
-        // Em 90 d/1 a as barras são semanas: uma média móvel de 7 d amostrada à semana coincide com
-        // o topo das barras (÷7), por isso não se sobrepõe (desvio registado no relatório do T5).
+        // In 90 d/1 y the bars are weeks: a 7-day moving average sampled weekly matches the top of
+        // the bars (÷7), so it is not overlaid (deviation recorded in the T5 report).
         Period.D90, Period.Y1 -> {
             val weekly = weeklyCounts(events, start, today)
             BarsData(
@@ -109,8 +109,8 @@ fun buildStats(
 }
 
 /**
- * Média móvel 7 d por dia de [start]..[today], alinhada com o índice das barras. Só aparece a partir
- * do 7.º dia desde o primeiro registo (antes disso a média misturaria dias sem app instalada).
+ * 7-day moving average per day over [start]..[today], aligned with the bar index. Only shown from
+ * the 7th day after the first entry (before that the average would include days without the app installed).
  */
 private fun movingAverageBars(
     events: List<SmokeEvent>,
@@ -133,7 +133,7 @@ private fun movingAverageBars(
 @OptIn(ExperimentalCoroutinesApi::class)
 class StatsViewModel(
     private val repo: SmokeRepository,
-    /** Onde se calcula (1 a = ~2 anos de eventos); nos testes, o dispatcher de teste. */
+    /** Where the computation runs (1 y = ~2 years of events); in tests, the test dispatcher. */
     private val compute: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
@@ -148,7 +148,7 @@ class StatsViewModel(
 
     private data class Tick(val date: LocalDate, val hour: Int)
 
-    /** Dia e hora actuais; mudam à meia-noite / a cada hora (ou ao voltar à app). */
+    /** Current day and hour; change at midnight / every hour (or when returning to the app). */
     private val tick: Flow<Tick> = combine(resumeSignal, minuteTicker) { _, _ ->
         val local = repo.now().atZone(repo.zone())
         Tick(local.toLocalDate(), local.hour)
@@ -158,7 +158,7 @@ class StatsViewModel(
         .flatMapLatest { (t, p) ->
             val d = t.date
             val zone: ZoneId = repo.zone()
-            // Período anterior (delta) + 6 dias antes (média móvel) + período actual.
+            // Previous period (delta) + 6 days before (moving average) + current period.
             val from = d.minusDays(2L * p.days + 6).atStartOfDay(zone).toInstant()
             val to = d.plusDays(1).atStartOfDay(zone).toInstant()
             combine(repo.observeBetween(from, to), repo.observeFirstEventInstant()) { logged, first ->

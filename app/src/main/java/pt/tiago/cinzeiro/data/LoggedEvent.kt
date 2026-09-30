@@ -4,7 +4,7 @@ import pt.tiago.cinzeiro.domain.SmokeEvent
 import java.time.Instant
 import java.time.ZoneId
 
-/** Evento guardado: o [SmokeEvent] do domínio mais o id da BD (para apagar/desfazer). */
+/** Stored event: the domain [SmokeEvent] plus the DB id (for delete/undo). */
 data class LoggedEvent(val id: Long, val event: SmokeEvent) {
     val instant: Instant get() = event.instant
     val zone: ZoneId get() = event.zone

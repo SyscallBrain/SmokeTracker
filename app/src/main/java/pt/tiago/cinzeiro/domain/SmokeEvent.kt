@@ -4,14 +4,14 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-/** Um cigarro: o instante (UTC) e a zona onde foi fumado. */
+/** One cigarette: the instant (UTC) and the zone where it was smoked. */
 data class SmokeEvent(
     val instant: Instant,
     val zone: ZoneId,
 )
 
-/** Dia local na zona do próprio evento (fronteira = meia-noite local). */
+/** Local day in the event's own zone (boundary = local midnight). */
 fun SmokeEvent.localDate(): LocalDate = instant.atZone(zone).toLocalDate()
 
-/** Hora local 0..23 na zona do próprio evento. */
+/** Local hour 0..23 in the event's own zone. */
 fun SmokeEvent.localHour(): Int = instant.atZone(zone).hour

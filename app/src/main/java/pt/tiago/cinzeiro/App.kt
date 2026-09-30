@@ -14,7 +14,7 @@ class App : Application() {
     lateinit var container: AppContainer
         private set
 
-    /** Vive tanto quanto o processo; só para trabalho ligado à app inteira (widget). */
+    /** Lives as long as the process; only for work tied to the whole app (widget). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
@@ -25,16 +25,16 @@ class App : Application() {
     }
 
     /**
-     * Qualquer inserção/remoção no repositório (ecrã Hoje, Histórico, desfazer, seed de debug)
-     * redesenha o widget; e garante o worker da meia-noite se houver widgets (p.ex. depois de
-     * reiniciar o telemóvel ou de actualizar a app).
+     * Any insert/delete in the repository (Today screen, History, undo, debug seed) redraws the
+     * widget; and ensures the midnight worker if there are widgets (e.g. after rebooting the
+     * phone or updating the app).
      */
     private fun keepWidgetInSync() {
         appScope.launch {
             runCatching { if (MidnightWorker.hasWidgets(this@App)) MidnightWorker.schedule(this@App) }
         }
         appScope.launch {
-            // Sem runCatching mudo (R4): push nunca lança e regista os erros no log de diagnóstico.
+            // No silent runCatching (R4): push never throws and records errors in the diagnostic log.
             container.repository.changes.collect { WidgetUpdater.push(this@App, PushCaller.APP) }
         }
     }

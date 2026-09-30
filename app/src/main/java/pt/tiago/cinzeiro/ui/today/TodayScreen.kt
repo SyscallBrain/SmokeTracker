@@ -65,7 +65,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 
-/** Duração do snackbar «Registado às HH:MM · Desfazer» (contrato de design: ~5 s). */
+/** Duration of the "Registado às HH:MM · Desfazer" snackbar (design contract: ~5 s). */
 private const val UNDO_WINDOW_MS = 5_000L
 
 @Composable
@@ -115,7 +115,7 @@ fun TodayRoute(
     )
 }
 
-/** Acções só do APK debug (pressão longa na data). */
+/** Debug-APK-only actions (long press on the date). */
 class DebugActions(val seed: () -> Unit, val clearAll: () -> Unit, val openDesign: () -> Unit)
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -240,7 +240,7 @@ fun TodayScreen(
     }
 }
 
-/** «último há 1 h 12 min», actualizado ao minuto enquanto o ecrã está visível. */
+/** "último há 1 h 12 min" (last one 1 h 12 min ago), updated every minute while the screen is visible. */
 @Composable
 private fun lastLabel(last: Instant?, now: () -> Instant): String {
     if (last == null) return "ainda sem registos"
@@ -248,7 +248,7 @@ private fun lastLabel(last: Instant?, now: () -> Instant): String {
     LaunchedEffect(last) {
         while (true) {
             current = now()
-            // Alinhado à viragem do minuto.
+            // Aligned to the minute boundary.
             delay(60_000 - current.toEpochMilli() % 60_000)
         }
     }

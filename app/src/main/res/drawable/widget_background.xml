@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fundo do widget (R5): superfície do tema escuro, cantos 16 dp (igual à 0.5.1). -->
+<!-- Widget background (R5): dark theme surface, 16 dp corners (same as 0.5.1). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <solid android:color="#FF24283B" />
     <corners android:radius="16dp" />

@@ -9,7 +9,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import pt.tiago.cinzeiro.ui.theme.CinzeiroTheme
 import pt.tiago.cinzeiro.ui.theme.Dimens
 
-/** Título de secção discreto («Por hora · hoje»). */
+/** Subtle section title ("Por hora · hoje"). */
 @Composable
 fun SectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(

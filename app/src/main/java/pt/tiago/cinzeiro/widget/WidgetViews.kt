@@ -8,16 +8,16 @@ import pt.tiago.cinzeiro.MainActivity
 import pt.tiago.cinzeiro.R
 import java.time.LocalDate
 
-/** Textos variáveis do widget (o «hoje» é fixo no layout). */
+/** Variable texts of the widget (the "hoje" is fixed in the layout). */
 data class WidgetTexts(val count: String, val last: String)
 
-/** Conteúdo do widget a partir do estado (função pura, testada em JVM). */
+/** Widget content from the state (pure function, tested on the JVM). */
 fun widgetTexts(state: WidgetState, today: LocalDate = state.day): WidgetTexts {
     val shown = state.displayedOn(today)
     return WidgetTexts(shown.todayCount.toString(), shown.lastLabel)
 }
 
-/** Constrói as `RemoteViews` do widget (R5): layout `widget_smoke`, textos e cliques. */
+/** Builds the widget's `RemoteViews` (R5): `widget_smoke` layout, texts and clicks. */
 object WidgetViews {
     private const val REQUEST_LOG = 1
     private const val REQUEST_OPEN = 2
@@ -32,7 +32,7 @@ object WidgetViews {
         }
     }
 
-    /** «+1»: broadcast explícito para [CinzeiroWidgetReceiver], acção [CinzeiroWidgetReceiver.ACTION_LOG]. */
+    /** "+1": explicit broadcast to [CinzeiroWidgetReceiver], action [CinzeiroWidgetReceiver.ACTION_LOG]. */
     fun logIntent(context: Context): PendingIntent {
         val intent = Intent(context, CinzeiroWidgetReceiver::class.java).setAction(CinzeiroWidgetReceiver.ACTION_LOG)
         return PendingIntent.getBroadcast(
@@ -40,7 +40,7 @@ object WidgetViews {
         )
     }
 
-    /** Toque no resto do widget: abre a app. */
+    /** Tap on the rest of the widget: opens the app. */
     private fun openAppIntent(context: Context): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)

@@ -2,7 +2,7 @@ package pt.tiago.cinzeiro.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Paleta Tokyo Night — tabela do «Contrato de design» do plano. Não acrescentar cores fora daqui.
+// Tokyo Night palette — table from the plan's "Design contract". Do not add colours outside this file.
 val Background = Color(0xFF1A1B26)
 val Surface = Color(0xFF24283B)
 val SurfaceVariant = Color(0xFF292E42)
@@ -16,5 +16,5 @@ val Tertiary = Color(0xFFBB9AF7)
 val Error = Color(0xFFF7768E)
 val Good = Color(0xFF9ECE6A)
 
-/** Acção do snackbar sobre fundo claro (`#c0caf5`), da maqueta — o `secondary` não tem contraste aí. */
+/** Snackbar action on a light background (`#c0caf5`), from the mockup — `secondary` lacks contrast there. */
 val SnackbarAction = Color(0xFF2A5BD7)

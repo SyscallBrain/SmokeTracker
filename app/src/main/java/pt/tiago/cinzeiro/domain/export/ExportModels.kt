@@ -6,12 +6,12 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
-/** Registo tal como é exportado (id da BD + instante + zona). Sem Android: testável na JVM. */
+/** Entry as exported (DB id + instant + zone). No Android: testable on the JVM. */
 data class ExportEvent(val id: Long, val instant: Instant, val zone: ZoneId) {
-    /** `2026-09-29T12:32:05Z` — ISO-8601 UTC; fracção de segundo só aparece se não for zero (sem perdas). */
+    /** `2026-09-29T12:32:05Z` — ISO-8601 UTC; fraction of a second only appears if non-zero (lossless). */
     val instantUtc: String get() = instant.toString()
 
-    /** `2026-09-29T13:32:05` — hora local na zona do registo, ao segundo (informativo; a importação ignora-o). */
+    /** `2026-09-29T13:32:05` — local time in the entry's zone, to the second (informational; import ignores it). */
     val localDateTime: String
         get() = instant.atZone(zone).toLocalDateTime().truncatedTo(ChronoUnit.SECONDS).format(LOCAL_FORMAT)
 
@@ -21,7 +21,7 @@ data class ExportEvent(val id: Long, val instant: Instant, val zone: ZoneId) {
     }
 }
 
-/** Contrato do ficheiro JSON (ADR §Decisão 10). `version` sobe se o formato mudar. */
+/** JSON file contract (ADR decision 10). `version` is bumped if the format changes. */
 @Serializable
 data class JsonExport(
     val format: String = FORMAT,
@@ -45,5 +45,5 @@ data class JsonExportEvent(
     @SerialName("local_datetime") val localDateTime: String,
 )
 
-/** Nome sugerido: `smoketracker-AAAA-MM-DD.csv|json`. */
+/** Suggested name: `smoketracker-YYYY-MM-DD.csv|json`. */
 fun exportFileName(date: java.time.LocalDate, extension: String): String = "smoketracker-$date.$extension"

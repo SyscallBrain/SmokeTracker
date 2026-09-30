@@ -5,7 +5,7 @@ import java.io.Writer
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-/** JSON versionado (ADR §Decisão 10), com `kotlinx-serialization-json` — o mesmo código servirá a importação. */
+/** Versioned JSON (ADR decision 10), with `kotlinx-serialization-json` — the same code will serve import. */
 object JsonExporter {
     val json: Json = Json {
         prettyPrint = true
@@ -22,7 +22,7 @@ object JsonExporter {
             events = events.map { JsonExportEvent(it.id, it.instantUtc, it.zone.id, it.localDateTime) },
         )
 
-    /** Escreve o documento; devolve o n.º de eventos. */
+    /** Writes the document; returns the number of events. */
     fun write(events: List<ExportEvent>, exportedAt: Instant, appVersion: String, out: Writer): Int {
         out.write(json.encodeToString(JsonExport.serializer(), build(events, exportedAt, appVersion)))
         out.write("\n")
@@ -30,6 +30,6 @@ object JsonExporter {
         return events.size
     }
 
-    /** Leitura (usada nos testes de round-trip; base da importação futura). */
+    /** Reading (used in round-trip tests; basis for the future import). */
     fun read(text: String): JsonExport = json.decodeFromString(JsonExport.serializer(), text)
 }

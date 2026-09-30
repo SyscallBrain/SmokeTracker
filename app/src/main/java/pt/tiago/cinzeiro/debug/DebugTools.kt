@@ -1,8 +1,8 @@
 package pt.tiago.cinzeiro.debug
 
-/** Acções de desenvolvimento; a implementação real só existe em `src/debug`. */
+/** Development actions; the real implementation only exists in `src/debug`. */
 interface DebugTools {
-    /** Substitui tudo por [days] dias de dados sintéticos. Devolve o n.º de registos gerados. */
+    /** Replaces everything with [days] days of synthetic data. Returns the number of entries generated. */
     suspend fun seed(days: Int = 90): Int
     suspend fun clearAll()
 }

@@ -41,18 +41,18 @@ enum class ExportFormat(val mime: String, val extension: String) {
 }
 
 /**
- * MIME aceites no seletor «Importar JSON»: alguns gestores de ficheiros não marcam `.json` como
- * `application/json` (plano R6).
+ * MIME types accepted by the "Import JSON" picker: some file managers do not tag `.json` as
+ * `application/json` (plan R6).
  */
 val IMPORT_MIME_TYPES = arrayOf("application/json", "text/plain", "application/octet-stream")
 
-/** Limite de leitura do ficheiro a importar (≈ 80 000 registos); acima disto não é um export nosso. */
+/** Read limit for the import file (≈ 80,000 entries); anything larger is not one of our exports. */
 const val IMPORT_MAX_BYTES = 16L * 1024 * 1024
 
-/** Ficheiro lido e validado, à espera da confirmação do utilizador. */
+/** File read and validated, awaiting user confirmation. */
 data class PendingImport(val events: List<SmokeEvent>, val new: Int, val existing: Int)
 
-/** Tamanho de cada página do histórico, em dias (não se carregam anos de uma vez). */
+/** Size of each history page, in days (years are not loaded at once). */
 const val HISTORY_PAGE_DAYS = 30
 
 data class DaySection(val date: LocalDate, val events: List<LoggedEvent>)
@@ -60,13 +60,13 @@ data class DaySection(val date: LocalDate, val events: List<LoggedEvent>)
 data class HistoryUiState(
     val loading: Boolean = true,
     val today: LocalDate? = null,
-    /** Dias com registos, do mais recente para o mais antigo; eventos de cada dia do mais recente para o mais antigo. */
+    /** Days with entries, newest first; each day's events newest first. */
     val days: List<DaySection> = emptyList(),
-    /** Há registos mais antigos do que a janela carregada. */
+    /** There are entries older than the loaded window. */
     val canLoadMore: Boolean = false,
     val loadedDays: Int = HISTORY_PAGE_DAYS,
     val isEmpty: Boolean = true,
-    /** Importação lida e à espera de confirmação (diálogo); `null` fora disso. */
+    /** Import read and awaiting confirmation (dialog); `null` otherwise. */
     val pendingImport: PendingImport? = null,
 )
 
@@ -76,15 +76,15 @@ sealed interface HistoryEvent {
     data class Message(val text: String) : HistoryEvent
 }
 
-/** Agrupa por dia local (zona do próprio registo), dias e registos do mais recente para o mais antigo. */
+/** Groups by local day (in each entry's own zone); days and entries newest first. */
 fun groupByDay(events: List<LoggedEvent>): List<DaySection> =
     events.groupBy { it.event.localDate() }
         .toSortedMap(compareByDescending { it })
         .map { (date, list) -> DaySection(date, list.sortedWith(compareByDescending<LoggedEvent> { it.instant }.thenByDescending { it.id })) }
 
 /**
- * Valida um registo retroactivo: devolve o instante ou `null` se ficar no futuro face a [now].
- * A UI usa isto para desactivar o botão; o repositório volta a verificar (defesa em profundidade).
+ * Validates a retroactive entry: returns the instant, or `null` if it is in the future relative to [now].
+ * The UI uses this to disable the button; the repository checks again (defence in depth).
  */
 fun pastInstantOrNull(date: LocalDate, time: LocalTime, zone: ZoneId, now: Instant): Instant? {
     val instant = date.atTime(time).atZone(zone).toInstant()
@@ -116,7 +116,7 @@ class HistoryViewModel(
         .flatMapLatest { (d, n) ->
             val zone = repo.zone()
             val from = d.minusDays(n - 1L).atStartOfDay(zone).toInstant()
-            // Até ao fim de amanhã: registos de outra zona (viagem) com dia local «à frente» não se perdem.
+            // Up to the end of tomorrow: entries from another zone (travel) whose local day is "ahead" are not lost.
             val to = d.plusDays(2).atStartOfDay(zone).toInstant()
             combine(repo.observeBetween(from, to), repo.observeFirstEventInstant(), pendingImport) { events, first, pending ->
                 HistoryUiState(
@@ -142,7 +142,7 @@ class HistoryViewModel(
         resumeSignal.value++
     }
 
-    /** Mais 30 dias para trás (chamado ao chegar perto do fim da lista). */
+    /** 30 more days back (called when nearing the end of the list). */
     fun loadMore() {
         if (state.value.canLoadMore) loadedDays.value += HISTORY_PAGE_DAYS
     }
@@ -153,14 +153,14 @@ class HistoryViewModel(
         }
     }
 
-    /** Repõe o registo apagado com o **mesmo** instante e a **mesma** zona (o id é novo). */
+    /** Restores the deleted entry with the **same** instant and the **same** zone (the id is new). */
     fun undoDelete(event: LoggedEvent) {
         viewModelScope.launch { repo.logAt(event.instant, event.zone) }
     }
 
     /**
-     * Exporta **todos** os registos para o destino escolhido no SAF. [open] abre o `OutputStream`
-     * (a UI usa `contentResolver.openOutputStream(uri, "wt")`); a formatação está em `domain/export`.
+     * Exports **all** entries to the destination chosen in SAF. [open] opens the `OutputStream`
+     * (the UI uses `contentResolver.openOutputStream(uri, "wt")`); formatting lives in `domain/export`.
      */
     fun export(format: ExportFormat, open: () -> OutputStream?) {
         viewModelScope.launch {
@@ -185,9 +185,9 @@ class HistoryViewModel(
     }
 
     /**
-     * Passo 1 da importação: lê e valida **o ficheiro inteiro** ([open] abre o `InputStream` do SAF),
-     * conta novos/existentes e deixa-o em [HistoryUiState.pendingImport] para o diálogo. Nada é escrito.
-     * Ficheiro inválido → mensagem com o primeiro erro (e o índice do registo).
+     * Import step 1: reads and validates **the whole file** ([open] opens the SAF `InputStream`),
+     * counts new/existing entries and puts it in [HistoryUiState.pendingImport] for the dialog. Nothing is written.
+     * Invalid file → message with the first error (and the entry index).
      */
     fun prepareImport(open: () -> InputStream?) {
         viewModelScope.launch {
@@ -219,7 +219,7 @@ class HistoryViewModel(
         }
     }
 
-    /** Passo 2: o utilizador confirmou. Insere os novos numa transacção e avisa com a contagem real. */
+    /** Step 2: the user confirmed. Inserts the new entries in one transaction and reports the actual count. */
     fun confirmImport() {
         val pending = pendingImport.value ?: return
         pendingImport.value = null
@@ -237,7 +237,7 @@ class HistoryViewModel(
         pendingImport.value = null
     }
 
-    /** Nome sugerido no seletor do SAF: `smoketracker-AAAA-MM-DD.<ext>`. */
+    /** Suggested name in the SAF picker: `smoketracker-YYYY-MM-DD.<ext>`. */
     fun suggestedFileName(format: ExportFormat): String =
         exportFileName(repo.now().atZone(repo.zone()).toLocalDate(), format.extension)
 
@@ -265,7 +265,7 @@ private fun nothingNewText(p: PendingImport): String = when (p.existing) {
     else -> "Nada a importar: os ${p.existing} registos já existem"
 }
 
-/** `InputStream.readNBytes(Int)` só existe a partir da API 33 no Android; minSdk = 26. */
+/** `InputStream.readNBytes(Int)` only exists from API 33 on Android; minSdk = 26. */
 private fun InputStream.readNBytesCompat(limit: Long): ByteArray {
     val out = java.io.ByteArrayOutputStream()
     val buf = ByteArray(8 * 1024)

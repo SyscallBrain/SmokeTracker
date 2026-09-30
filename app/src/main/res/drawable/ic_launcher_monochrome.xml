@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Camada monocromática (ícones temáticos, Android 13+): mesma geometria do primeiro plano, só alfa conta. -->
+<!-- Monochrome layer (themed icons, Android 13+): same geometry as the foreground, only alpha matters. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"

@@ -8,8 +8,8 @@ import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Intervalos `[fromMs, toMs)`: início **inclusivo**, fim **exclusivo** (um dia = meia-noite
- * até à meia-noite seguinte, sem contar o mesmo evento em dois dias).
+ * Ranges `[fromMs, toMs)`: start **inclusive**, end **exclusive** (a day = midnight to the
+ * next midnight, without counting the same event on two days).
  */
 @Dao
 interface SmokeEventDao {
@@ -43,25 +43,25 @@ interface SmokeEventDao {
     @Query("SELECT COUNT(*) FROM smoke_event WHERE at_epoch_ms >= :fromMs AND at_epoch_ms < :toMs")
     suspend fun countBetween(fromMs: Long, toMs: Long): Int
 
-    /** Último registo, leitura única (widget, R4). */
+    /** Latest entry, one-shot read (widget, R4). */
     @Query("SELECT * FROM smoke_event ORDER BY at_epoch_ms DESC, id DESC LIMIT 1")
     suspend fun last(): SmokeEventEntity?
 
-    /** Todos os registos por ordem de instante (exportação). */
+    /** All entries ordered by instant (export). */
     @Query("SELECT * FROM smoke_event ORDER BY at_epoch_ms, id")
     suspend fun all(): List<SmokeEventEntity>
 
     /**
-     * Chaves de deduplicação `(at_epoch_ms, zone_id)` já existentes em `[fromMs, toMs]` (**ambos
-     * inclusivos**, ao contrário das outras consultas: serve para testar existência, não para dias).
+     * Deduplication keys `(at_epoch_ms, zone_id)` already present in `[fromMs, toMs]` (**both
+     * inclusive**, unlike the other queries: it tests existence, not days).
      */
     @Query("SELECT at_epoch_ms, zone_id FROM smoke_event WHERE at_epoch_ms >= :fromMs AND at_epoch_ms <= :toMs")
     suspend fun keysBetween(fromMs: Long, toMs: Long): List<EventKey>
 
     /**
-     * Importação (R6): insere, **numa só transacção**, os [events] cuja chave `(at_epoch_ms, zone_id)`
-     * ainda não existe (nem na BD nem repetida antes no próprio lote). Os `id` recebidos são ignorados.
-     * Devolve quantos foram inseridos. Se algo falhar, a transacção é revertida — nada fica inserido.
+     * Import (R6): inserts, **in a single transaction**, the [events] whose key `(at_epoch_ms, zone_id)`
+     * does not exist yet (neither in the DB nor earlier in the same batch). The received `id`s are ignored.
+     * Returns how many were inserted. If anything fails, the transaction is rolled back — nothing is inserted.
      */
     @Transaction
     suspend fun insertMissing(events: List<SmokeEventEntity>): Int {
@@ -73,7 +73,7 @@ interface SmokeEventDao {
     }
 }
 
-/** Chave de deduplicação da importação: instante ao milissegundo + zona. */
+/** Import deduplication key: instant to the millisecond + zone. */
 data class EventKey(
     @ColumnInfo(name = "at_epoch_ms") val atEpochMs: Long,
     @ColumnInfo(name = "zone_id") val zoneId: String,

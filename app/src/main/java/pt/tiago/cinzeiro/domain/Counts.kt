@@ -8,7 +8,7 @@ data class DayCount(val date: LocalDate, val count: Int)
 
 data class WeekCount(val weekStart: LocalDate, val count: Int)
 
-/** Contagem por dia local, de [from] a [to] inclusive, com os dias sem eventos a 0. */
+/** Count per local day, from [from] to [to] inclusive, with days without events at 0. */
 fun dailyCounts(events: List<SmokeEvent>, from: LocalDate, to: LocalDate): List<DayCount> {
     if (to < from) return emptyList()
     val size = (to.toEpochDay() - from.toEpochDay() + 1).toInt()
@@ -21,7 +21,7 @@ fun dailyCounts(events: List<SmokeEvent>, from: LocalDate, to: LocalDate): List<
     return List(size) { DayCount(from.plusDays(it.toLong()), counts[it]) }
 }
 
-/** Contagem por semana (a começar à segunda) dos eventos de [from] a [to] inclusive. */
+/** Count per week (starting on Monday) of the events from [from] to [to] inclusive. */
 fun weeklyCounts(events: List<SmokeEvent>, from: LocalDate, to: LocalDate): List<WeekCount> =
     dailyCounts(events, from, to)
         .groupBy { it.date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }

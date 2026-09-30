@@ -3,7 +3,7 @@ package pt.tiago.cinzeiro.domain
 import java.time.Duration
 import java.time.LocalDate
 
-/** Períodos das estatísticas: N dias a terminar em `endInclusive`. */
+/** Statistics periods: N days ending on `endInclusive`. */
 enum class Period(val days: Int) {
     D7(7),
     D30(30),
@@ -12,10 +12,10 @@ enum class Period(val days: Int) {
 }
 
 /**
- * @property perDay total / dias efectivos (ver [summary]).
- * @property maxDay dia com mais cigarros no período (o mais antigo, em caso de empate); `null` sem eventos.
- * @property avgInterval média dos intervalos entre eventos consecutivos do mesmo dia local.
- * @property deltaPct variação de [perDay] face ao período anterior, em pontos percentuais (50.0 = +50 %).
+ * @property perDay total / effective days (see [summary]).
+ * @property maxDay day with the most cigarettes in the period (the earliest, on a tie); `null` without events.
+ * @property avgInterval mean of the intervals between consecutive events on the same local day.
+ * @property deltaPct change in [perDay] versus the previous period, in percentage points (50.0 = +50 %).
  */
 data class Summary(
     val total: Int,
@@ -26,14 +26,14 @@ data class Summary(
 )
 
 /**
- * Resumo do período de [period] dias que termina em [endInclusive].
+ * Summary of the [period]-day period ending on [endInclusive].
  *
- * - `perDay = total / min(N, endInclusive - firstEventDate + 1)`: na primeira semana de uso a
- *   média não aparece artificialmente baixa. Sem [firstEventDate] (ou posterior a [endInclusive]) é 0.
- * - O dia [endInclusive] conta como dia inteiro mesmo que ainda esteja a decorrer; para ignorar
- *   o dia parcial, passar `endInclusive = ontem`.
- * - `deltaPct` é `null` se o período anterior (os N dias antes do início) não estiver completo
- *   (começa antes de [firstEventDate]) ou tiver média 0.
+ * - `perDay = total / min(N, endInclusive - firstEventDate + 1)`: in the first week of use the
+ *   average does not look artificially low. Without [firstEventDate] (or if after [endInclusive]) it is 0.
+ * - The day [endInclusive] counts as a full day even if it is still in progress; to ignore the
+ *   partial day, pass `endInclusive = yesterday`.
+ * - `deltaPct` is `null` if the previous period (the N days before the start) is not complete
+ *   (it starts before [firstEventDate]) or has an average of 0.
  */
 fun summary(
     events: List<SmokeEvent>,
@@ -45,7 +45,7 @@ fun summary(
     val start = endInclusive.minusDays(n - 1L)
     val prevStart = start.minusDays(n.toLong())
 
-    // Uma só passagem: contagens por dia do período actual + anterior (2N dias).
+    // Single pass: per-day counts for the current + previous period (2N days).
     val counts = IntArray(2 * n)
     val baseDay = prevStart.toEpochDay()
     val inPeriod = ArrayList<SmokeEvent>()
@@ -80,7 +80,7 @@ private fun effectiveDays(n: Int, endInclusive: LocalDate, firstEventDate: Local
     return minOf(n.toLong(), sinceFirst).toInt()
 }
 
-/** Média dos intervalos entre eventos consecutivos do mesmo dia local; a noite não conta. */
+/** Mean of the intervals between consecutive events on the same local day; the night does not count. */
 private fun averageSameDayInterval(events: List<SmokeEvent>): Duration? {
     if (events.size < 2) return null
     val sorted = events.sortedBy { it.instant }

@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import pt.tiago.cinzeiro.ui.theme.CinzeiroTheme
 import pt.tiago.cinzeiro.ui.theme.Dimens
 
-/** Estado vazio: ícone + uma frase. Nunca gráfico vazio com eixos. */
+/** Empty state: icon + one sentence. Never an empty chart with axes. */
 @Composable
 fun EmptyState(
     text: String,

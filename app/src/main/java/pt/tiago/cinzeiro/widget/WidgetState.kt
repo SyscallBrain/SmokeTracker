@@ -8,21 +8,21 @@ import java.time.LocalTime
 import java.time.ZoneId
 
 /**
- * O que o widget mostra. Calculado por [loadWidgetState] e desenhado por [WidgetUpdater.push]
- * (R5: `RemoteViews` directos, ver [WidgetViews]).
+ * What the widget shows. Computed by [loadWidgetState] and drawn by [WidgetUpdater.push]
+ * (R5: direct `RemoteViews`, see [WidgetViews]).
  *
- * [day] é o dia local a que [todayCount] se refere, para não mostrar a contagem de ontem se o
- * push da meia-noite se atrasar ([displayedOn]).
+ * [day] is the local day that [todayCount] refers to, so yesterday's count is not shown if the
+ * midnight push is late ([displayedOn]).
  */
 data class WidgetState(val todayCount: Int, val lastLabel: String, val day: LocalDate) {
 
-    /** O que mostrar em [today]: este estado, ou contagem 0 se for de outro dia. */
+    /** What to show on [today]: this state, or a count of 0 if it is from another day. */
     fun displayedOn(today: LocalDate): WidgetState = if (day == today) this else copy(todayCount = 0)
 }
 
 /**
- * «Último» em hora **absoluta** (ADR §6: o widget não se actualiza ao minuto, «há X min» ficaria
- * errado). Hoje → «último 13:32»; outro dia → «último 28 set»; sem registos → «sem registos».
+ * "Latest" as an **absolute** time (ADR §6: the widget does not update every minute, so "há X min"
+ * would go stale). Today → "último 13:32"; another day → "último 28 set"; no entries → "sem registos".
  */
 fun lastLabel(last: Instant?, lastZone: ZoneId?, today: LocalDate, zone: ZoneId): String {
     if (last == null) return "sem registos"
@@ -31,17 +31,17 @@ fun lastLabel(last: Instant?, lastZone: ZoneId?, today: LocalDate, zone: ZoneId)
     else "último ${Formats.dayMonth(local.toLocalDate())}"
 }
 
-/** Monta o estado do widget (função pura, testada em JVM). */
+/** Builds the widget state (pure function, tested on the JVM). */
 fun widgetState(count: Int, last: Instant?, lastZone: ZoneId?, today: LocalDate, zone: ZoneId): WidgetState =
     WidgetState(count, lastLabel(last, lastZone, today, zone), today)
 
-/** Intervalo `[meia-noite, meia-noite seguinte)` do dia [date] em [zone]. */
+/** Range `[midnight, next midnight)` of day [date] in [zone]. */
 fun dayBounds(date: LocalDate, zone: ZoneId): Pair<Instant, Instant> =
     date.atStartOfDay(zone).toInstant() to date.plusDays(1).atStartOfDay(zone).toInstant()
 
 /**
- * Estado actual com leituras únicas (sem Flows vivos): contagem do dia local de [now] e último
- * registo. Parâmetros como funções para testar sem Room.
+ * Current state from one-shot reads (no live Flows): count for the local day of [now] and the
+ * latest entry. Parameters are functions so it can be tested without Room.
  */
 suspend fun loadWidgetState(
     now: Instant,
@@ -55,6 +55,6 @@ suspend fun loadWidgetState(
     return widgetState(countBetween(from, to), lastEvent?.instant, lastEvent?.zone, today, zone)
 }
 
-/** Texto do Toast do +1 do widget: «Registado às 13:32 · 5 hoje». */
+/** Text of the widget's +1 Toast: "Registado às 13:32 · 5 hoje". */
 fun loggedToastText(time: LocalTime, todayCount: Int): String =
     "Registado às ${Formats.time(time)} · $todayCount hoje"

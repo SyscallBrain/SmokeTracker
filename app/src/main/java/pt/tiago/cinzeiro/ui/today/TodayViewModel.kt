@@ -33,7 +33,7 @@ data class TodayUiState(
     val date: LocalDate? = null,
     val countToday: Int = 0,
     val lastInstant: Instant? = null,
-    /** Média/dia dos 7 dias **até ontem** (o dia parcial de hoje não entra); null sem histórico. */
+    /** Average per day over the 7 days **up to yesterday** (today's partial day is excluded); null without history. */
     val avg7PerDay: Double? = null,
     val avg7DeltaPct: Double? = null,
     val avgIntervalToday: Duration? = null,
@@ -62,7 +62,7 @@ class TodayViewModel(
         }
     }
 
-    /** Dia e hora actuais; muda à meia-noite e a cada hora (ou ao voltar à app). */
+    /** Current day and hour; changes at midnight and every hour (or when returning to the app). */
     private val tick: Flow<Tick> = combine(resumeSignal, minuteTicker) { _, _ ->
         val local = repo.now().atZone(repo.zone())
         Tick(local.toLocalDate(), local.hour)
@@ -70,7 +70,7 @@ class TodayViewModel(
 
     val state: StateFlow<TodayUiState> = tick.flatMapLatest { t ->
         val zone = repo.zone()
-        // 14 dias para trás: 7 da média + 7 do período anterior (para a variação).
+        // 14 days back: 7 for the average + 7 for the previous period (for the change).
         val from = t.date.minusDays(14).atStartOfDay(zone).toInstant()
         val to = t.date.plusDays(1).atStartOfDay(zone).toInstant()
         combine(
@@ -87,7 +87,7 @@ class TodayViewModel(
 
     fun now(): Instant = repo.now()
 
-    /** Chamar em ON_RESUME: recalcula o dia se a app esteve parada durante a meia-noite. */
+    /** Call on ON_RESUME: recomputes the day if the app was idle across midnight. */
     fun onResume() {
         resumeSignal.value++
     }
@@ -100,7 +100,7 @@ class TodayViewModel(
         }
     }
 
-    /** Desfaz **este** registo (pelo id), nunca «o último» — o widget pode ter registado entretanto. */
+    /** Undoes **this** entry (by id), never "the last one" — the widget may have logged one meanwhile. */
     fun undo(id: Long) {
         viewModelScope.launch { repo.delete(id) }
     }

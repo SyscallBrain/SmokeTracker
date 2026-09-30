@@ -11,9 +11,9 @@ import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
 /**
- * Põe a contagem do widget a zeros na mudança de dia: redesenha e reagenda-se para a meia-noite
- * local seguinte (one-off encadeado; `updatePeriodMillis` não desce dos 30 min). Deixa de se
- * reagendar quando já não há widgets no ecrã inicial.
+ * Resets the widget count to zero when the day changes: redraws and reschedules itself for the next
+ * local midnight (chained one-off; `updatePeriodMillis` cannot go below 30 min). Stops
+ * rescheduling itself when there are no widgets left on the home screen.
  */
 class MidnightWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
@@ -25,7 +25,7 @@ class MidnightWorker(context: Context, params: WorkerParameters) : CoroutineWork
     companion object {
         private const val UNIQUE_NAME = "cinzeiro-widget-midnight"
 
-        /** Margem para não acordar uns milissegundos antes da meia-noite e desenhar ainda «ontem». */
+        /** Margin so it does not wake a few milliseconds before midnight and still draw "yesterday". */
         private const val MARGIN_MS = 5_000L
 
         fun hasWidgets(context: Context): Boolean = WidgetUpdater.widgetIds(context).isNotEmpty()

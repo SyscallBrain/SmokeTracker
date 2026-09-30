@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-/** Tabela `smoke_event` (ADR §Decisão 3): instante UTC + zona do registo. */
+/** Table `smoke_event` (ADR decision 3): UTC instant + the entry's zone. */
 @Entity(
     tableName = "smoke_event",
     indices = [Index(value = ["at_epoch_ms"])],

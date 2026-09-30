@@ -23,9 +23,8 @@ import androidx.compose.foundation.clickable
 import pt.tiago.cinzeiro.ui.theme.Dimens
 
 /**
- * Folha «Exportar / importar»: exportar CSV (folha de cálculo) ou JSON (cópia de segurança) —
- * desactivados com a BD vazia — e «Importar JSON», sempre activo (é o caminho para repor os dados
- * numa instalação nova).
+ * "Export / import" sheet: export CSV (spreadsheet) or JSON (backup) — disabled when the DB is
+ * empty — and "Import JSON", always enabled (it is how data is restored on a fresh install).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

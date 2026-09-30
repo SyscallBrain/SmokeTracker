@@ -45,9 +45,9 @@ fun StatsRoute(viewModel: StatsViewModel) {
 }
 
 /**
- * [selected] vem directamente do selector (responde logo ao toque); [state] mantém os números do
- * período anterior até os novos estarem calculados — não há estado de «a carregar» entre períodos,
- * logo o ecrã não pisca.
+ * [selected] comes straight from the selector (responds to the tap immediately); [state] keeps the
+ * previous period's numbers until the new ones are computed — there is no "loading" state between
+ * periods, so the screen does not flicker.
  */
 @Composable
 fun StatsScreen(state: StatsUiState, selected: Period, onSelect: (Period) -> Unit) {
@@ -107,7 +107,7 @@ fun StatsScreen(state: StatsUiState, selected: Period, onSelect: (Period) -> Uni
     }
 }
 
-/** Secção «Por hora do dia» + heatmap (T6). */
+/** "Por hora do dia" (by hour of day) section + heatmap (T6). */
 @Composable
 internal fun PatternsSection(state: StatsUiState) {
     val empty = (state.summary?.total ?: 0) == 0
