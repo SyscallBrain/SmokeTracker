@@ -10,7 +10,7 @@ import java.time.OffsetDateTime
 class FeedbackLogTest {
     private val at = OffsetDateTime.parse("2026-09-30T14:03:12+01:00")
 
-    @Test fun file_name() = assertEquals("pt.tiago.cinzeiro-feedback.log", FeedbackLog.fileName("pt.tiago.cinzeiro"))
+    @Test fun file_name() = assertEquals("pt.tiago.cinzeiro-feedback.txt", FeedbackLog.fileName("pt.tiago.cinzeiro"))
 
     @Test fun full_line() {
         val line = FeedbackLog.line(

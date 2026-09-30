@@ -9,13 +9,13 @@ import java.time.format.DateTimeFormatter
 
 /**
  * Diagnóstico do feedback do +1 (R3.0): uma linha por tentativa em
- * `Download/crashlogs/pt.tiago.cinzeiro-feedback.log` (mesmo mecanismo do [CrashLog]; só em builds
- * debuggable; guarda as últimas [MAX_LINES] linhas).
+ * `Download/crashlogs/pt.tiago.cinzeiro-feedback.txt` (mesmo mecanismo do [CrashLog]; só em builds
+ * debuggable; guarda as últimas [MAX_LINES] linhas). `.txt` e não `.log`: ver [CrashLog.appendLines].
  */
 object FeedbackLog {
     const val MAX_LINES = 200
 
-    fun fileName(packageName: String) = "$packageName-feedback.log"
+    fun fileName(packageName: String) = "$packageName-feedback.txt"
 
     fun append(context: Context, line: String) {
         CrashLog.appendLines(context, fileName(context.packageName), listOf(line), MAX_LINES)

@@ -40,9 +40,14 @@ object CrashLog {
      * Acrescenta [lines] a um ficheiro de texto em Download/crashlogs/[name] (mesmo sítio dos
      * crashes), guardando só as últimas [maxLines]. Para diagnósticos «silenciosos» (ex.: log de
      * feedback do +1). Só em builds debuggable. Chamar fora da thread principal se possível.
+     *
+     * [name] tem de terminar em `.txt`: com MIME `text/plain` o MediaStore acrescenta `.txt` a
+     * qualquer outra extensão (`x.log` → `x.log.txt`), a consulta pelo nome pedido deixava de
+     * encontrar o ficheiro e cada chamada criava um novo (`x.log (1).txt`…) — bug da 0.5.0.
      */
     @Synchronized
     fun appendLines(context: Context, name: String, lines: List<String>, maxLines: Int) {
+        require(name.endsWith(".txt")) { "O MediaStore renomeia para .txt; usar um nome .txt: $name" }
         if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val resolver = context.contentResolver
