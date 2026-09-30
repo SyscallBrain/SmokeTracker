@@ -89,6 +89,6 @@ class ExportersTest {
 
     @Test
     fun `nome sugerido do ficheiro`() {
-        assertEquals("cinzeiro-2026-09-29.csv", exportFileName(java.time.LocalDate.of(2026, 9, 29), "csv"))
+        assertEquals("smoketracker-2026-09-29.csv", exportFileName(java.time.LocalDate.of(2026, 9, 29), "csv"))
     }
 }

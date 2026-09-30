@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">cinzeiro</string>
+    <string name="app_name">SmokeTracker</string>
     <string name="widget_description">Contagem de hoje e +1 com um toque</string>
 </resources>

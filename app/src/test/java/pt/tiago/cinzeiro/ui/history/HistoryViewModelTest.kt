@@ -149,7 +149,7 @@ class HistoryViewModelTest {
         assertEquals(3, lines.size)
         assertTrue(lines[1].endsWith("Europe/Lisbon,2026-06-21T08:00:00"))
         assertEquals(HistoryEvent.Message("Exportados 2 registos"), events.last())
-        assertEquals("cinzeiro-2026-09-29.json", vm.suggestedFileName(ExportFormat.JSON))
+        assertEquals("smoketracker-2026-09-29.json", vm.suggestedFileName(ExportFormat.JSON))
     }
 
     @Test

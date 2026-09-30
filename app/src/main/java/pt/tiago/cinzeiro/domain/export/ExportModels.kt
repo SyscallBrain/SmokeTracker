@@ -45,5 +45,5 @@ data class JsonExportEvent(
     @SerialName("local_datetime") val localDateTime: String,
 )
 
-/** Nome sugerido: `cinzeiro-AAAA-MM-DD.csv|json`. */
-fun exportFileName(date: java.time.LocalDate, extension: String): String = "cinzeiro-$date.$extension"
+/** Nome sugerido: `smoketracker-AAAA-MM-DD.csv|json`. */
+fun exportFileName(date: java.time.LocalDate, extension: String): String = "smoketracker-$date.$extension"

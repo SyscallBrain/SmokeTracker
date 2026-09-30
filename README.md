@@ -1,6 +1,8 @@
-# cinzeiro
+# SmokeTracker
 
-App Android pessoal para registar cigarros com um toque e ver estatísticas.
+App Android pessoal (nome visível «SmokeTracker»; `applicationId`, pacotes Kotlin, directório
+do projecto e o id de formato `cinzeiro-export` mantêm `cinzeiro` — invisíveis, mudá-los
+perderia os registos instalados) para registar cigarros com um toque e ver estatísticas.
 Dados só no telemóvel (sem permissão `INTERNET`).
 
 Plano e ADR vivem fora deste repositório (workspace do architect).
@@ -121,7 +123,7 @@ O código vive em `app/src/debug/` (`SyntheticData`, `createDebugTools`); o `src
 ## Exportar (T10)
 
 - Histórico → ícone de descarregar → CSV ou JSON; ficheiro escolhido pelo SAF (`CreateDocument`),
-  sem permissões. Formatos em `domain/export/` (ADR §Decisão 10):
+  sem permissões; nome sugerido `smoketracker-AAAA-MM-DD.csv|json`. Formatos em `domain/export/` (ADR §Decisão 10):
   - CSV: `id,instant_utc,zone_id,local_datetime`, UTF-8 sem BOM, `\n`.
   - JSON: `{format:"cinzeiro-export", version:1, exported_at, app_version, count, events:[…]}`.
 

@@ -164,7 +164,7 @@ class HistoryViewModel(
         }
     }
 
-    /** Nome sugerido no seletor do SAF: `cinzeiro-AAAA-MM-DD.<ext>`. */
+    /** Nome sugerido no seletor do SAF: `smoketracker-AAAA-MM-DD.<ext>`. */
     fun suggestedFileName(format: ExportFormat): String =
         exportFileName(repo.now().atZone(repo.zone()).toLocalDate(), format.extension)
 
