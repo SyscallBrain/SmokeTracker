@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -49,7 +51,8 @@ class SettingsRepositoryTest {
     @Test fun values_survive_a_new_datastore_on_the_same_file() = runBlocking {
         repo.setVibrationType(VibrationType.STRONG)
         repo.setShowMessage(false)
-        scope.cancel()
+        // cancel() não espera: a DataStore antiga só larga o ficheiro quando o scope termina.
+        scope.coroutineContext.job.cancelAndJoin()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val reopened = SettingsRepository(newStore())
         assertEquals(Settings(vibrate = true, vibrationType = VibrationType.STRONG, showMessage = false), reopened.current())
