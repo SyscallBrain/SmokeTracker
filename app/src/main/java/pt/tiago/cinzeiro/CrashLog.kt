@@ -1,5 +1,6 @@
 package pt.tiago.cinzeiro
 
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.content.pm.ApplicationInfo
@@ -34,6 +35,50 @@ object CrashLog {
             previous?.uncaughtException(thread, error)
         }
     }
+
+    /**
+     * Acrescenta [lines] a um ficheiro de texto em Download/crashlogs/[name] (mesmo sítio dos
+     * crashes), guardando só as últimas [maxLines]. Para diagnósticos «silenciosos» (ex.: log de
+     * feedback do +1). Só em builds debuggable. Chamar fora da thread principal se possível.
+     */
+    @Synchronized
+    fun appendLines(context: Context, name: String, lines: List<String>, maxLines: Int) {
+        if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = context.contentResolver
+            val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            val relative = "${Environment.DIRECTORY_DOWNLOADS}/$SUBDIR/"
+            val existing = resolver.query(
+                collection,
+                arrayOf(MediaStore.Downloads._ID),
+                "${MediaStore.Downloads.DISPLAY_NAME} = ? AND ${MediaStore.Downloads.RELATIVE_PATH} = ?",
+                arrayOf(name, relative),
+                null,
+            )?.use { c -> if (c.moveToFirst()) ContentUris.withAppendedId(collection, c.getLong(0)) else null }
+            val old = existing?.let { uri ->
+                resolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
+            }.orEmpty()
+            val uri = existing ?: resolver.insert(
+                collection,
+                ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, name)
+                    put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+                    put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$SUBDIR")
+                },
+            ) ?: return
+            val text = keepLast(old, lines, maxLines)
+            resolver.openOutputStream(uri, "wt")?.use { it.write(text.toByteArray()) }
+        } else {
+            val dir = File(context.getExternalFilesDir(null), SUBDIR).apply { mkdirs() }
+            val file = File(dir, name)
+            val old = if (file.exists()) file.readText() else ""
+            file.writeText(keepLast(old, lines, maxLines))
+        }
+    }
+
+    /** Conteúdo antigo + novas linhas, só as últimas [maxLines], terminado em \n. */
+    internal fun keepLast(old: String, lines: List<String>, maxLines: Int): String =
+        (old.lines().filter { it.isNotEmpty() } + lines).takeLast(maxLines).joinToString("\n", postfix = "\n")
 
     private fun write(context: Context, thread: Thread, error: Throwable) {
         val now = Date()
