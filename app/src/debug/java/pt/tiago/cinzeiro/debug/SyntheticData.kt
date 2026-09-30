@@ -21,7 +21,7 @@ object SyntheticData {
     fun generate(clock: Clock, days: Int, seed: Int = 42): List<Pair<Instant, ZoneId>> {
         val zone = clock.zone
         val now = clock.instant()
-        val today = LocalDate.ofInstant(now, zone)
+        val today = now.atZone(zone).toLocalDate()
         val rnd = Random(seed)
         val totalWeight = HOUR_WEIGHTS.sum()
         val out = ArrayList<Pair<Instant, ZoneId>>()
