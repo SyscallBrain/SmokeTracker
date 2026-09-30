@@ -111,8 +111,14 @@ fun HistoryRoute(viewModel: HistoryViewModel, snackbarHostState: SnackbarHostSta
     val jsonLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(ExportFormat.JSON.mime)) { uri ->
         if (uri != null) viewModel.export(ExportFormat.JSON) { context.contentResolver.openOutputStream(uri, "wt") }
     }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) viewModel.prepareImport { context.contentResolver.openInputStream(uri) }
+    }
     HistoryScreen(
         state = state,
+        onImport = { importLauncher.launch(IMPORT_MIME_TYPES) },
+        onConfirmImport = viewModel::confirmImport,
+        onCancelImport = viewModel::cancelImport,
         onExport = { format ->
             val name = viewModel.suggestedFileName(format)
             when (format) {
@@ -133,6 +139,9 @@ private fun LoggedEvent.localTime(): LocalTime = instant.atZone(zone).toLocalTim
 @Composable
 fun HistoryScreen(
     state: HistoryUiState,
+    onImport: () -> Unit,
+    onConfirmImport: () -> Unit,
+    onCancelImport: () -> Unit,
     onExport: (ExportFormat) -> Unit,
     onDelete: (LoggedEvent) -> Unit,
     onLoadMore: () -> Unit,
@@ -166,7 +175,7 @@ fun HistoryScreen(
         Text("Histórico", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.weight(1f))
         IconButton(onClick = { exporting = true }) {
-            Icon(Icons.Rounded.FileDownload, contentDescription = "Exportar")
+            Icon(Icons.Rounded.FileDownload, contentDescription = "Exportar ou importar")
         }
     }
     Box(Modifier.fillMaxSize()) {
@@ -215,7 +224,15 @@ fun HistoryScreen(
                 exporting = false
                 onExport(format)
             },
+            onImport = {
+                exporting = false
+                onImport()
+            },
         )
+    }
+
+    state.pendingImport?.let { pending ->
+        ImportConfirmDialog(pending, onConfirm = onConfirmImport, onDismiss = onCancelImport)
     }
 
     if (adding) {
@@ -229,6 +246,25 @@ fun HistoryScreen(
             },
         )
     }
+}
+
+/** «Importar N registos (M já existem e serão ignorados)?» — só aparece com N ≥ 1. */
+@Composable
+private fun ImportConfirmDialog(pending: PendingImport, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    val n = pending.new
+    val main = if (n == 1) "Importar 1 registo" else "Importar $n registos"
+    val skipped = when (pending.existing) {
+        0 -> ""
+        1 -> " (1 já existe e será ignorado)"
+        else -> " (${pending.existing} já existem e serão ignorados)"
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Importar JSON") },
+        text = { Text("$main$skipped?") },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Importar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+    )
 }
 
 @Composable

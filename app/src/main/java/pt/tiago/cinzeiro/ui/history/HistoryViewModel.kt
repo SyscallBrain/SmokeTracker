@@ -24,6 +24,9 @@ import pt.tiago.cinzeiro.data.SmokeRepository
 import pt.tiago.cinzeiro.domain.export.CsvExporter
 import pt.tiago.cinzeiro.domain.export.ExportEvent
 import pt.tiago.cinzeiro.domain.export.JsonExporter
+import pt.tiago.cinzeiro.domain.export.JsonImporter
+import pt.tiago.cinzeiro.domain.SmokeEvent
+import java.io.InputStream
 import pt.tiago.cinzeiro.domain.export.exportFileName
 import pt.tiago.cinzeiro.domain.localDate
 import java.io.OutputStream
@@ -36,6 +39,18 @@ enum class ExportFormat(val mime: String, val extension: String) {
     CSV("text/csv", "csv"),
     JSON("application/json", "json"),
 }
+
+/**
+ * MIME aceites no seletor «Importar JSON»: alguns gestores de ficheiros não marcam `.json` como
+ * `application/json` (plano R6).
+ */
+val IMPORT_MIME_TYPES = arrayOf("application/json", "text/plain", "application/octet-stream")
+
+/** Limite de leitura do ficheiro a importar (≈ 80 000 registos); acima disto não é um export nosso. */
+const val IMPORT_MAX_BYTES = 16L * 1024 * 1024
+
+/** Ficheiro lido e validado, à espera da confirmação do utilizador. */
+data class PendingImport(val events: List<SmokeEvent>, val new: Int, val existing: Int)
 
 /** Tamanho de cada página do histórico, em dias (não se carregam anos de uma vez). */
 const val HISTORY_PAGE_DAYS = 30
@@ -51,6 +66,8 @@ data class HistoryUiState(
     val canLoadMore: Boolean = false,
     val loadedDays: Int = HISTORY_PAGE_DAYS,
     val isEmpty: Boolean = true,
+    /** Importação lida e à espera de confirmação (diálogo); `null` fora disso. */
+    val pendingImport: PendingImport? = null,
 )
 
 sealed interface HistoryEvent {
@@ -93,13 +110,15 @@ class HistoryViewModel(
         repo.now().atZone(repo.zone()).toLocalDate()
     }.distinctUntilChanged()
 
+    private val pendingImport = MutableStateFlow<PendingImport?>(null)
+
     val state: StateFlow<HistoryUiState> = combine(today, loadedDays) { d, n -> d to n }
         .flatMapLatest { (d, n) ->
             val zone = repo.zone()
             val from = d.minusDays(n - 1L).atStartOfDay(zone).toInstant()
             // Até ao fim de amanhã: registos de outra zona (viagem) com dia local «à frente» não se perdem.
             val to = d.plusDays(2).atStartOfDay(zone).toInstant()
-            combine(repo.observeBetween(from, to), repo.observeFirstEventInstant()) { events, first ->
+            combine(repo.observeBetween(from, to), repo.observeFirstEventInstant(), pendingImport) { events, first, pending ->
                 HistoryUiState(
                     loading = false,
                     today = d,
@@ -107,6 +126,7 @@ class HistoryViewModel(
                     canLoadMore = first != null && first.isBefore(from),
                     loadedDays = n,
                     isEmpty = first == null,
+                    pendingImport = pending,
                 )
             }
         }
@@ -164,6 +184,59 @@ class HistoryViewModel(
         }
     }
 
+    /**
+     * Passo 1 da importação: lê e valida **o ficheiro inteiro** ([open] abre o `InputStream` do SAF),
+     * conta novos/existentes e deixa-o em [HistoryUiState.pendingImport] para o diálogo. Nada é escrito.
+     * Ficheiro inválido → mensagem com o primeiro erro (e o índice do registo).
+     */
+    fun prepareImport(open: () -> InputStream?) {
+        viewModelScope.launch {
+            val result = runCatching {
+                withContext(io) {
+                    val stream = open() ?: error("ficheiro indisponível")
+                    val bytes = stream.use { it.readNBytesCompat(IMPORT_MAX_BYTES + 1) }
+                    if (bytes.size > IMPORT_MAX_BYTES) error("ficheiro demasiado grande")
+                    val parsed = JsonImporter.read(bytes.toString(Charsets.UTF_8), repo.now())
+                    if (!parsed.ok) {
+                        val first = parsed.errors.first().describe()
+                        val more = parsed.errors.size - 1
+                        error(if (more > 0) "$first (e mais $more)" else first)
+                    }
+                    val preview = repo.previewImport(parsed.events)
+                    PendingImport(parsed.events, preview.new, preview.existing)
+                }
+            }
+            result.fold(
+                onSuccess = { pending ->
+                    if (pending.new == 0) {
+                        _events.send(HistoryEvent.Message(nothingNewText(pending)))
+                    } else {
+                        pendingImport.value = pending
+                    }
+                },
+                onFailure = { e -> _events.send(HistoryEvent.Message("Ficheiro não importado: ${e.message ?: e.javaClass.simpleName}")) },
+            )
+        }
+    }
+
+    /** Passo 2: o utilizador confirmou. Insere os novos numa transacção e avisa com a contagem real. */
+    fun confirmImport() {
+        val pending = pendingImport.value ?: return
+        pendingImport.value = null
+        viewModelScope.launch {
+            val result = runCatching { withContext(io) { repo.importEvents(pending.events) } }
+            val text = result.fold(
+                onSuccess = { n -> if (n == 1) "Importado 1 registo" else "Importados $n registos" },
+                onFailure = { e -> "Falhou a importação (nada foi importado): ${e.message ?: e.javaClass.simpleName}" },
+            )
+            _events.send(HistoryEvent.Message(text))
+        }
+    }
+
+    fun cancelImport() {
+        pendingImport.value = null
+    }
+
     /** Nome sugerido no seletor do SAF: `smoketracker-AAAA-MM-DD.<ext>`. */
     fun suggestedFileName(format: ExportFormat): String =
         exportFileName(repo.now().atZone(repo.zone()).toLocalDate(), format.extension)
@@ -184,4 +257,24 @@ class HistoryViewModel(
             }
         }
     }
+}
+
+private fun nothingNewText(p: PendingImport): String = when (p.existing) {
+    0 -> "O ficheiro não tem registos"
+    1 -> "Nada a importar: o registo já existe"
+    else -> "Nada a importar: os ${p.existing} registos já existem"
+}
+
+/** `InputStream.readNBytes(Int)` só existe a partir da API 33 no Android; minSdk = 26. */
+private fun InputStream.readNBytesCompat(limit: Long): ByteArray {
+    val out = java.io.ByteArrayOutputStream()
+    val buf = ByteArray(8 * 1024)
+    var total = 0L
+    while (total < limit) {
+        val n = read(buf, 0, minOf(buf.size.toLong(), limit - total).toInt())
+        if (n < 0) break
+        out.write(buf, 0, n)
+        total += n
+    }
+    return out.toByteArray()
 }

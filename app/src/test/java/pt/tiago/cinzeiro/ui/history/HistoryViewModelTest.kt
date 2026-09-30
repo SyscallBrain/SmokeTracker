@@ -170,4 +170,101 @@ class HistoryViewModelTest {
         runCurrent()
         assertEquals(HistoryEvent.Message("Falhou a exportação: destino indisponível"), events.last())
     }
+
+    // --- Importação (R6) ---
+
+    private fun fixtureStream() = javaClass.classLoader!!.getResourceAsStream("smoketracker-export-2026-09-30.json")!!
+
+    private fun TestScope.importVm(): Pair<HistoryViewModel, MutableList<HistoryEvent>> {
+        val vm = HistoryViewModel(repo, appVersion = "0.7.0", io = dispatcher)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect {} }
+        val events = mutableListOf<HistoryEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.events.collect { events += it } }
+        runCurrent()
+        return vm to events
+    }
+
+    @Test
+    fun `importar - preparar mostra N novos e M existentes, confirmar insere e avisa`() = runTest(dispatcher) {
+        // Relógio do teste é 29-09 12:32Z; a fixture vai até 30-09 → usar um repo com relógio posterior.
+        repo = SmokeRepository(FakeSmokeEventDao(), Clock.fixed(Instant.parse("2026-09-30T12:00:00Z"), zone))
+        val (vm, events) = importVm()
+        vm.prepareImport { fixtureStream() }
+        runCurrent()
+        val pending = vm.state.value.pendingImport!!
+        assertEquals(13, pending.new)
+        assertEquals(0, pending.existing)
+        assertTrue(repo.allEvents().isEmpty()) // nada escrito antes de confirmar
+
+        vm.confirmImport()
+        runCurrent()
+        assertNull(vm.state.value.pendingImport)
+        assertEquals(13, repo.allEvents().size)
+        assertEquals(HistoryEvent.Message("Importados 13 registos"), events.last())
+
+        // O mesmo ficheiro outra vez: nada de diálogo, só a mensagem.
+        vm.prepareImport { fixtureStream() }
+        runCurrent()
+        assertNull(vm.state.value.pendingImport)
+        assertEquals(HistoryEvent.Message("Nada a importar: os 13 registos já existem"), events.last())
+    }
+
+    @Test
+    fun `importar - apagar 2 e importar mostra 2 novos e 11 existentes`() = runTest(dispatcher) {
+        repo = SmokeRepository(FakeSmokeEventDao(), Clock.fixed(Instant.parse("2026-09-30T12:00:00Z"), zone))
+        val (vm, events) = importVm()
+        vm.prepareImport { fixtureStream() }
+        runCurrent()
+        vm.confirmImport()
+        runCurrent()
+        val all = repo.allEvents()
+        repo.delete(all[0].id)
+        repo.delete(all[12].id)
+        vm.prepareImport { fixtureStream() }
+        runCurrent()
+        assertEquals(PendingImport(vm.state.value.pendingImport!!.events, 2, 11), vm.state.value.pendingImport)
+        vm.confirmImport()
+        runCurrent()
+        assertEquals(13, repo.allEvents().size)
+        assertEquals(HistoryEvent.Message("Importados 2 registos"), events.last())
+    }
+
+    @Test
+    fun `importar - cancelar nao escreve nada`() = runTest(dispatcher) {
+        repo = SmokeRepository(FakeSmokeEventDao(), Clock.fixed(Instant.parse("2026-09-30T12:00:00Z"), zone))
+        val (vm, _) = importVm()
+        vm.prepareImport { fixtureStream() }
+        runCurrent()
+        vm.cancelImport()
+        runCurrent()
+        assertNull(vm.state.value.pendingImport)
+        vm.confirmImport() // sem pendente: não faz nada
+        runCurrent()
+        assertTrue(repo.allEvents().isEmpty())
+    }
+
+    @Test
+    fun `importar - ficheiro invalido da mensagem legivel com o indice e nao abre dialogo`() = runTest(dispatcher) {
+        val (vm, events) = importVm()
+        // O relógio do teste é 29-09 12:32:05Z; o 2.º registo fica no futuro.
+        val text = """{"format":"cinzeiro-export","version":1,"exported_at":"2026-09-29T00:00:00Z","app_version":"0.6.0","count":2,
+            "events":[{"id":1,"instant_utc":"2026-09-29T10:00:00Z","zone_id":"Europe/Lisbon","local_datetime":"x"},
+                      {"id":2,"instant_utc":"2026-09-29T13:00:00Z","zone_id":"Europe/Lisbon","local_datetime":"x"}]}"""
+        vm.prepareImport { text.byteInputStream() }
+        runCurrent()
+        assertNull(vm.state.value.pendingImport)
+        assertEquals(
+            HistoryEvent.Message("Ficheiro não importado: registo n.º 2: instante no futuro (2026-09-29T13:00:00Z)"),
+            events.last(),
+        )
+        assertTrue(repo.allEvents().isEmpty())
+
+        vm.prepareImport { "{}".byteInputStream() }
+        runCurrent()
+        assertTrue((events.last() as HistoryEvent.Message).text.startsWith("Ficheiro não importado: formato"))
+
+        vm.prepareImport { null }
+        runCurrent()
+        assertEquals(HistoryEvent.Message("Ficheiro não importado: ficheiro indisponível"), events.last())
+    }
 }

@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DataObject
+import androidx.compose.material.icons.rounded.FileUpload
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.rounded.TableChart
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -20,13 +22,18 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.clickable
 import pt.tiago.cinzeiro.ui.theme.Dimens
 
-/** Folha «Exportar»: CSV (folha de cálculo) ou JSON (cópia de segurança). Desactivada com a BD vazia. */
+/**
+ * Folha «Exportar / importar»: exportar CSV (folha de cálculo) ou JSON (cópia de segurança) —
+ * desactivados com a BD vazia — e «Importar JSON», sempre activo (é o caminho para repor os dados
+ * numa instalação nova).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExportSheet(
     enabled: Boolean,
     onDismiss: () -> Unit,
     onPick: (ExportFormat) -> Unit,
+    onImport: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
         Column(Modifier.padding(bottom = Dimens.xl)) {
@@ -45,6 +52,8 @@ fun ExportSheet(
             }
             Option("CSV (folha de cálculo)", "Abre no Excel/LibreOffice", Icons.Rounded.TableChart, enabled) { onPick(ExportFormat.CSV) }
             Option("JSON (cópia de segurança)", "Formato versionado para repor dados", Icons.Rounded.DataObject, enabled) { onPick(ExportFormat.JSON) }
+            HorizontalDivider(Modifier.padding(vertical = Dimens.s), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            Option("Importar JSON", "Repor registos de uma cópia de segurança; os repetidos são ignorados", Icons.Rounded.FileUpload, true, onImport)
         }
     }
 }
