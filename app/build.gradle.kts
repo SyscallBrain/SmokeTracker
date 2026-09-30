@@ -6,11 +6,11 @@ plugins {
 }
 
 /*
- * Assinatura release (R6/T9). Os valores vêm de propriedades Gradle fora do repositório
- * (`~/.gradle/gradle.properties`, chmod 600, escritas por `tools/make-release-keystore.sh`).
- * Sem elas, o release fica sem signingConfig e a tarefa `checkReleaseSigning` falha — só nas
- * tarefas de release; debug e testes não dependem destas propriedades.
- * Nunca se usa a chave debug no release.
+ * Release signing (R6/T9). The values come from Gradle properties kept outside the repository
+ * (`~/.gradle/gradle.properties`, chmod 600, written by `tools/make-release-keystore.sh`).
+ * Without them the release build has no signingConfig and the `checkReleaseSigning` task fails —
+ * only for release tasks; debug builds and tests do not depend on these properties.
+ * The debug key is never used for release.
  */
 val releaseSigningProps = listOf(
     "SMOKETRACKER_STORE_FILE",
@@ -48,7 +48,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Sem as propriedades fica null (APK não assinado) e checkReleaseSigning trava o build.
+            // Without the properties this stays null (unsigned APK) and checkReleaseSigning stops the build.
             signingConfig = signingConfigs.findByName("release")
         }
     }
@@ -66,7 +66,7 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
-            // Robolectric 4.17 com SDK 36 acede a jdk.internal.access (ApplicationSharedMemory).
+            // Robolectric 4.17 with SDK 36 accesses jdk.internal.access (ApplicationSharedMemory).
             it.jvmArgs("--add-exports", "java.base/jdk.internal.access=ALL-UNNAMED")
             it.jvmArgs("--add-opens", "java.base/java.io=ALL-UNNAMED")
         }
@@ -111,7 +111,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
 }
 
-/** Falha com mensagem clara se faltar alguma propriedade de assinatura (só em tarefas de release). */
+/** Fails with a clear message if any signing property is missing (release tasks only). */
 abstract class CheckReleaseSigning : DefaultTask() {
     @get:Input
     abstract val missing: ListProperty<String>
@@ -121,9 +121,9 @@ abstract class CheckReleaseSigning : DefaultTask() {
         val m = missing.get()
         if (m.isNotEmpty()) {
             throw GradleException(
-                "Assinatura release não configurada: faltam as propriedades Gradle ${m.joinToString(", ")}. " +
-                    "Corre tools/make-release-keystore.sh (escreve-as em ~/.gradle/gradle.properties) — ver README, secção Release. " +
-                    "O release nunca é assinado com a chave debug."
+                "Release signing is not configured: missing Gradle properties ${m.joinToString(", ")}. " +
+                    "Run tools/make-release-keystore.sh (it writes them to ~/.gradle/gradle.properties) or see the " +
+                    "README, section \"Release build\". The release build is never signed with the debug key."
             )
         }
     }
