@@ -125,11 +125,11 @@ sha256sum smoketracker-1.0.0.apk                  # compare with the hash in the
 apksigner verify --print-certs smoketracker-1.0.0.apk
 ```
 
-The release signing certificate is:
+Expected output (the APK uses APK Signature Scheme v2, RSA 4096):
 
 ```
-Signer #1 certificate DN: CN=SmokeTracker
-Signer #1 certificate SHA-256 digest: 5d904c7fd637f52f6841ed5d3e15ebc62b1127ed9e13cf7f6b20c8bd978f3265
+V2 Signer: certificate DN: CN=SmokeTracker
+V2 Signer: certificate SHA-256 digest: 5d904c7fd637f52f6841ed5d3e15ebc62b1127ed9e13cf7f6b20c8bd978f3265
 ```
 
 Future releases will be signed with the same key; Android refuses an update signed with a
