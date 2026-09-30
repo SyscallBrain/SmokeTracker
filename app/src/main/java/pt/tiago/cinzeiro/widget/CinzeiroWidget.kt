@@ -32,6 +32,9 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import kotlinx.coroutines.flow.first
 import pt.tiago.cinzeiro.App
 import pt.tiago.cinzeiro.MainActivity
@@ -39,7 +42,7 @@ import pt.tiago.cinzeiro.ui.format.Formats
 import java.time.LocalDate
 import java.time.ZoneId
 
-/** O que o widget mostra; calculado em [load], desenhado em [WidgetContent]. */
+/** O que o widget mostra; vem de [widgetStateFlow], desenhado em [WidgetContent]. */
 data class WidgetState(val todayCount: Int, val lastLabel: String)
 
 /**
@@ -56,20 +59,20 @@ fun lastLabel(last: java.time.Instant?, lastZone: ZoneId?, today: LocalDate, zon
 class CinzeiroWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single
 
+    /**
+     * Os dados são lidos **dentro** da composição (Flows do Room + `collectAsState`). O Glance 1.2.0
+     * mantém a sessão viva (`SessionWorker`, `initialTimeout` 45 s, prolongado a cada evento) e,
+     * com sessão viva, `update()/updateAll()` só envia `UpdateGlanceState` e **recompõe** — não volta
+     * a chamar `provideGlance`. Um valor lido antes de `provideContent` ficava congelado (bug R2.2).
+     */
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val state = load(context)
-        provideContent { WidgetContent(state) }
-    }
-
-    private suspend fun load(context: Context): WidgetState {
         val repo = (context.applicationContext as App).container.repository
-        val zone = repo.zone()
-        val today = repo.now().atZone(zone).toLocalDate()
-        val from = today.atStartOfDay(zone).toInstant()
-        val to = today.plusDays(1).atStartOfDay(zone).toInstant()
-        val count = repo.countBetween(from, to)
-        val last = repo.observeLast().first()
-        return WidgetState(count, lastLabel(last?.instant, last?.zone, today, zone))
+        val states = widgetStateFlow(repo::now, repo.zone(), repo::observeCountBetween, repo::observeLast)
+        val initial = states.first() // primeiro frame já com dados, sem «0» transitório
+        provideContent {
+            val state by remember { states }.collectAsState(initial)
+            WidgetContent(state)
+        }
     }
 }
 
