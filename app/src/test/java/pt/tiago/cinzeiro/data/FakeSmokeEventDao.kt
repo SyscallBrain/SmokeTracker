@@ -44,4 +44,7 @@ class FakeSmokeEventDao : SmokeEventDao {
         rows.value.maxWithOrNull(compareBy({ it.atEpochMs }, { it.id }))
 
     override suspend fun all(): List<SmokeEventEntity> = rows.value.sortedWith(compareBy({ it.atEpochMs }, { it.id }))
+
+    override suspend fun keysBetween(fromMs: Long, toMs: Long): List<EventKey> =
+        rows.value.filter { it.atEpochMs in fromMs..toMs }.map { EventKey(it.atEpochMs, it.zoneId) }
 }

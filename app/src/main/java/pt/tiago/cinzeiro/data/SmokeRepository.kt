@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
+import pt.tiago.cinzeiro.domain.SmokeEvent
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -70,6 +71,31 @@ class SmokeRepository(
 
     /** Todos os registos, ordenados por instante (e id), para exportar. */
     suspend fun allEvents(): List<LoggedEvent> = dao.all().map { it.toLogged() }
+
+    /** Quantos dos [events] seriam novos e quantos já existem (mesmo instante ao ms e mesma zona). */
+    data class ImportPreview(val new: Int, val existing: Int)
+
+    /** Pré-visualização da importação (diálogo de confirmação); não escreve nada. */
+    suspend fun previewImport(events: List<SmokeEvent>): ImportPreview {
+        if (events.isEmpty()) return ImportPreview(0, 0)
+        val ms = events.map { it.instant.toEpochMilli() }
+        val seen = dao.keysBetween(ms.min(), ms.max()).toHashSet()
+        val new = events.count { seen.add(EventKey(it.instant.toEpochMilli(), it.zone.id)) }
+        return ImportPreview(new = new, existing = events.size - new)
+    }
+
+    /**
+     * Importa os [events] que ainda não existem, numa única transacção (tudo ou nada). Devolve o n.º
+     * inserido. [changes] emite **uma** vez ([Change.Bulk]) no fim, e só se entrou alguma coisa.
+     * @throws IllegalArgumentException se algum evento estiver no futuro (nada é inserido).
+     */
+    suspend fun importEvents(events: List<SmokeEvent>): Int {
+        val now = clock.instant()
+        events.forEachIndexed { i, e -> require(!e.instant.isAfter(now)) { "Registo n.º ${i + 1} no futuro: ${e.instant}" } }
+        val inserted = dao.insertMissing(events.map { SmokeEventEntity(atEpochMs = it.instant.toEpochMilli(), zoneId = it.zone.id) })
+        if (inserted > 0) _changes.tryEmit(Change.Bulk)
+        return inserted
+    }
 
     /** Só para as ferramentas de debug (seed / apagar tudo). */
     suspend fun replaceAll(events: List<Pair<Instant, ZoneId>>) {

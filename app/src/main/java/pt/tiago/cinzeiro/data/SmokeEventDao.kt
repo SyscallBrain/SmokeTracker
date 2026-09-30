@@ -1,8 +1,10 @@
 package pt.tiago.cinzeiro.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -48,4 +50,31 @@ interface SmokeEventDao {
     /** Todos os registos por ordem de instante (exportação). */
     @Query("SELECT * FROM smoke_event ORDER BY at_epoch_ms, id")
     suspend fun all(): List<SmokeEventEntity>
+
+    /**
+     * Chaves de deduplicação `(at_epoch_ms, zone_id)` já existentes em `[fromMs, toMs]` (**ambos
+     * inclusivos**, ao contrário das outras consultas: serve para testar existência, não para dias).
+     */
+    @Query("SELECT at_epoch_ms, zone_id FROM smoke_event WHERE at_epoch_ms >= :fromMs AND at_epoch_ms <= :toMs")
+    suspend fun keysBetween(fromMs: Long, toMs: Long): List<EventKey>
+
+    /**
+     * Importação (R6): insere, **numa só transacção**, os [events] cuja chave `(at_epoch_ms, zone_id)`
+     * ainda não existe (nem na BD nem repetida antes no próprio lote). Os `id` recebidos são ignorados.
+     * Devolve quantos foram inseridos. Se algo falhar, a transacção é revertida — nada fica inserido.
+     */
+    @Transaction
+    suspend fun insertMissing(events: List<SmokeEventEntity>): Int {
+        if (events.isEmpty()) return 0
+        val seen = keysBetween(events.minOf { it.atEpochMs }, events.maxOf { it.atEpochMs }).toHashSet()
+        val fresh = events.filter { seen.add(EventKey(it.atEpochMs, it.zoneId)) }.map { it.copy(id = 0) }
+        if (fresh.isNotEmpty()) insertAll(fresh)
+        return fresh.size
+    }
 }
+
+/** Chave de deduplicação da importação: instante ao milissegundo + zona. */
+data class EventKey(
+    @ColumnInfo(name = "at_epoch_ms") val atEpochMs: Long,
+    @ColumnInfo(name = "zone_id") val zoneId: String,
+)
