@@ -7,7 +7,7 @@
 #   «SmokeTracker — keystore release (ficheiro .jks em base64)»  Nota Segura com o .jks
 # Restaurar o .jks: bw get notes <id-da-nota> | base64 -d > ~/.android/smoketracker-release.jks
 #
-# Corre-se UMA vez, no terminal do Tiago (pede a master password do Bitwarden de forma
+# Corre-se UMA vez, num terminal interactivo (pede a master password do Bitwarden de forma
 # interactiva). Não contém segredos; a password nunca é impressa nem passada em argumentos
 # (keytool lê-a de uma variável de ambiente com -storepass:env / -keypass:env).
 #
