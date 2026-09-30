@@ -3,6 +3,9 @@
 
     <!-- Vibração curta no +1 do widget (R2.3). Permissão «normal», concedida na instalação. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- R3.2: sem notificações permitidas (Android 13+) o sistema descarta o Toast do +1 do widget
+         com a app em segundo plano (NotificationManagerService.checkCanEnqueueToast). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".App"
