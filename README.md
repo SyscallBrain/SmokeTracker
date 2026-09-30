@@ -130,8 +130,13 @@ O código vive em `app/src/debug/` (`SyntheticData`, `createDebugTools`); o `src
 ## Widget (T8)
 
 - Glance 2×1: contagem de hoje, «último HH:MM» (hora absoluta), botão «+1».
-- Actualiza após o +1 (`updateAll` no `ActionCallback`), sempre que o repositório emite `changes`
-  (em `App`, scope de aplicação) e à meia-noite local (WorkManager one-off reagendado).
+- Os dados são lidos **dentro** da composição (`widgetStateFlow`: Flows do Room
+  `observeCountBetween` + `observeLast`, com `collectAsState`), porque o Glance mantém a sessão viva
+  e `update()/updateAll()` recompõe sem voltar a chamar `provideGlance` (bug R2.2). O dia é
+  recalculado a cada meia-noite local no próprio Flow; `updateAll` continua após o +1, em `changes`
+  (em `App`) e à meia-noite (WorkManager) para acordar/recriar a sessão.
+- +1 do widget: vibração curta (`EFFECT_CLICK`, `USAGE_HARDWARE_FEEDBACK` — o uso `TOUCH` é
+  ignorado com a app em segundo plano) e Toast «Registado às HH:MM · N hoje». Permissão `VIBRATE`.
 - Permissões novas no APK vêm do `work-runtime` (WAKE_LOCK, ACCESS_NETWORK_STATE,
   RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE) — todas «normal», concedidas na instalação.
 
